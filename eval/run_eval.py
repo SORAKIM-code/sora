@@ -54,9 +54,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", default="all", choices=["tune", "eval", "all"])
     ap.add_argument("--out", default=os.path.join(BASE, "reports", "eval_report.md"))
+    # 시나리오의 기대 후보는 가상 카탈로그 44건 기준이므로 기본으로 고정 견본을 쓴다.
+    ap.add_argument("--catalogs", default="tests/fixtures/catalogs.xlsx",
+                    help="평가에 쓸 카탈로그 엑셀(BASE 기준 경로). 운영 목록으로 보려면 data/catalogs.xlsx")
     args = ap.parse_args()
 
-    svc = Service(BASE, db_path=":memory:", clock=lambda: datetime(2026, 11, 3, 10, 0, 0))
+    svc = Service(BASE, db_path=":memory:", clock=lambda: datetime(2026, 11, 3, 10, 0, 0),
+                  config_overrides={"catalog_excel": args.catalogs})
     k = svc.cfg["top_k"]
     data = json.load(open(os.path.join(BASE, "data", "scenarios.json"), encoding="utf-8"))
     pw = {u["id"]: u["password"] for u in json.load(open(os.path.join(BASE, "data", "users.json"), encoding="utf-8"))["users"]}

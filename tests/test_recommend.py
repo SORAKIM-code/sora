@@ -13,6 +13,23 @@ class Recommend(unittest.TestCase):
         self.svc = make_service()
         self.s = login(self.svc, "r1", R1)
 
+    def test_new_domains_and_related_domains(self):
+        g = self.svc.glossary
+        self.assertEqual(g.domains_in("위성영상 판독 모델"), ["정보"])
+        self.assertEqual(g.domains_in("연구 정보를 정리하고 인사이트를 얻는다"), [])  # 흔한 말로 분야를 잡지 않는다
+        self.assertIn("군수", g.domains_in("창고 입출고 기록"))
+        self.assertEqual(g.related(["보급"]), {"군수"})
+        self.assertEqual(g.related(["교육훈련"]), {"인사", "작전"})
+        rec = self.svc.recommender
+        conds = {"domains": ["교육훈련"], "data_hints": [], "need_label": False, "period": None}
+        self.assertEqual(rec.match_conditions(conds, {"domain": "인사"})[0]["status"], "부분")
+        self.assertEqual(rec.match_conditions(conds, {"domain": "차량"})[0]["status"], "불충족")
+
+    def test_keyword_equal_to_domain_is_not_first_hashtag(self):
+        v = {"keywords": ["인사", "교육", "직무역량"], "domain": "인사", "data_type": "이력"}
+        tags = [t["tag"] for t in explainer.hashtags(v, {})]
+        self.assertEqual(tags, ["#교육", "#직무역량", "#인사", "#이력"])
+
     def test_purpose_only_input_works(self):
         r = self.svc.recommend(self.s, {"query": "헬기 엔진 결함을 조기에 발견하는 모델"})
         self.assertEqual(r["status"], "ok")

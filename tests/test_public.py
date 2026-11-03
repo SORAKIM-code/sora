@@ -13,13 +13,21 @@ from http.server import ThreadingHTTPServer
 
 from app.schema import value_text
 from app.server import make_handler
+from app.service import Service
 from app.textutil import normalize
-from tests.helpers import BASE, RESTRICTED, ids, make_service
+from tests.helpers import BASE, RESTRICTED, Clock, ids, make_service
 
 with open(os.path.join(BASE, "data", "examples.json"), encoding="utf-8") as f:
     EXAMPLES = json.load(f)["examples"]
 
-QUERIES = EXAMPLES + [
+# 고정 견본(가상 카탈로그 44건)으로 근거 검증에 쓰는 질의. 첫 화면 예시(examples.json)는 운영 목록에 맞춰 바뀐다.
+QUERIES = [
+    "차량 정비 이력을 활용해서 고장 예측 AI를 개발하고 싶습니다.",
+    "헬기 엔진 진동 측정값으로 결함을 조기에 발견하는 모델을 만들고 싶습니다.",
+    "함정 추진기관 운전 기록으로 이상 징후를 탐지하고 싶습니다.",
+    "수리부속 청구 이력으로 부품 수요를 예측해 재고를 줄이고 싶습니다.",
+    "기온과 온열질환 발생의 관계를 분석하고 싶습니다.",
+    "잔반 발생량을 줄이기 위한 급식 식단 분석을 하고 싶습니다.",
     "군용 차량의 고장을 사전에 예측하고 싶다", "통신장비 고장 유형을 분류하는 연구", "태양광 발전량과 일사량의 관계",
     "2015~2024 항공기 비행시간 기록 분석", "전술차량 부품 교체 주기를 최적화하는 연구", "식자재 조달 단가 추이",
 ]
@@ -44,8 +52,14 @@ class DemoFlow(unittest.TestCase):
         self.assertEqual(ids(r)[0], "CAT-VEH-001")
 
     def test_every_example_gets_recommendations(self):
+        """첫 화면 예시는 지금 쓰는 카탈로그 목록(data/catalogs.xlsx)에서 추천이 나와야 한다."""
+        live = Service(BASE, db_path=":memory:", clock=Clock())
+        demo = live.demo_session()
         for q in EXAMPLES:
-            self.assertEqual(self.recommend(q)["status"], "ok", q)
+            r = live.recommend(demo, {"query": q})
+            if r["status"] == "clarify":
+                r = live.recommend(demo, {"query": q, "skip_clarify": True})
+            self.assertEqual(r["status"], "ok", q)
 
     def test_demo_scope_excludes_restricted(self):
         docs, _ = self.svc._visible_docs(self.demo["user"], self.demo["purpose"])

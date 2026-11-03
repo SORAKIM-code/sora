@@ -218,6 +218,8 @@ def hashtags(v, src):
             tag = "".join(ch for ch in val if ch.isalnum())
             if not tag or tag.lower() in seen or val == "공통":
                 continue
+            if key == "keywords" and val == v.get("domain"):
+                continue  # 주제어에 분야 이름을 또 적은 경우 분야 태그 자리로 미룬다
             seen.add(tag.lower())
             out.append({"tag": "#" + tag, "value": val, "field": key, "source_line": src.get(key)})
             if len(out) == HASHTAG_COUNT:

@@ -1,6 +1,7 @@
 {
-  "version": "glossary-2026-11-03-v1",
-  "note": "시제품용 가상 용어사전. approved=true 인 대응어만 검색에 쓰인다.",
+  "version": "glossary-2026-11-03-v2",
+  "note": "시제품용 가상 용어사전. approved=true 인 대응어만 검색에 쓰인다. '정보'·'인사'처럼 흔한 낱말은 분야를 잘못 잡지 않도록 대표어를 구체적인 말로 둔다.",
+  "related_domains": [["보급", "군수"], ["급식", "군수"], ["교육훈련", "인사"], ["교육훈련", "작전"]],
   "groups": [
     {"canonical": "차량", "synonyms": ["군용차", "군용차량", "전술차량", "트럭", "수송차량", "자동차"], "domain": "차량", "approved": true},
     {"canonical": "항공기", "synonyms": ["헬기", "헬리콥터", "회전익", "고정익", "비행기", "기체"], "domain": "항공기", "approved": true},
@@ -12,6 +13,10 @@
     {"canonical": "기상", "synonyms": ["날씨", "기후", "기온", "강수", "일사량", "풍속", "외기"], "domain": "기상", "approved": true},
     {"canonical": "교육훈련", "synonyms": ["훈련", "교육과정", "사격", "체력검정"], "domain": "교육훈련", "approved": true},
     {"canonical": "급식", "synonyms": ["식단", "식자재", "잔반", "배식", "음식물", "1종"], "domain": "급식", "approved": true},
+    {"canonical": "군수", "synonyms": ["군수지원", "군수품", "물자", "재고", "조달", "창고", "입출고", "납품", "납기", "공급업체", "예방정비", "수리부속", "피복"], "domain": "군수", "approved": true},
+    {"canonical": "작전", "synonyms": ["모의훈련", "워게임", "상황보고", "상황보고서", "상황판", "훈련통제", "재난대응", "대피훈련", "임무"], "domain": "작전", "approved": true},
+    {"canonical": "정보분석", "synonyms": ["영상판독", "위성영상", "항공영상", "공개기사", "공개출처", "개체명", "말뭉치", "정보보고", "정보문서"], "domain": "정보", "approved": true},
+    {"canonical": "인사행정", "synonyms": ["인사관리", "보직", "전입", "당직", "군무원", "직무역량", "직무교육", "전문인력", "휴가"], "domain": "인사", "approved": true},
     {"canonical": "수리부속", "synonyms": ["9종"], "approved": true},
     {"canonical": "유류", "synonyms": ["3종"], "approved": true},
     {"canonical": "피복", "synonyms": ["2종"], "approved": true},

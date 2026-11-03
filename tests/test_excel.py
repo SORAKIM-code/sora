@@ -7,9 +7,9 @@ import unittest
 from app.excel_catalog import headers, parse_workbook
 from app.service import Service, ServiceError
 from app.xlsx import read_xlsx, write_xlsx
-from tests.helpers import BASE, Clock, ids, make_service
+from tests.helpers import BASE, FIXTURE_XLSX, Clock, ids, make_service
 
-SAMPLE = os.path.join(BASE, "data", "catalogs.xlsx")
+SAMPLE = FIXTURE_XLSX
 
 
 def sample_rows():
@@ -39,6 +39,12 @@ class Excel(unittest.TestCase):
         self.assertEqual(a, b)
         self.assertEqual(from_excel.last_import["status"], "imported")
         self.assertIsNotNone(from_excel.store.approved_one("CAT-VEH-001")["origin"])
+
+    def test_catalog_file_in_use_is_readable(self):
+        """운영자가 넣은 data/catalogs.xlsx 가 반영 가능한 파일인지(내용은 바뀔 수 있으므로 형식만) 확인한다."""
+        p = parse_workbook(os.path.join(BASE, "data", "catalogs.xlsx"))
+        self.assertIsNone(p["fatal"])
+        self.assertTrue(any(r["status"] == "approved" for r in p["rows"]))
 
     def test_recommendation_cites_excel_cell(self):
         svc = make_service()

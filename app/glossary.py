@@ -7,6 +7,10 @@ class Glossary:
         self.version = data.get("version", "glossary-unknown")
         self.groups = [g for g in data.get("groups", []) if g.get("approved") is True]
         self.unapproved = [g for g in data.get("groups", []) if g.get("approved") is not True]
+        self._related = {}
+        for pair in data.get("related_domains", []):
+            for a in pair:
+                self._related.setdefault(a, set()).update(b for b in pair if b != a)
         self._tok_to_groups = {}
         for g in self.groups:
             for term in [g["canonical"]] + g.get("synonyms", []):
@@ -34,6 +38,13 @@ class Glossary:
                         if st not in weights:
                             weights[st] = synonym_weight * base
         return weights
+
+    def related(self, domains):
+        """서로 겹치는 분야(예: 보급과 군수). 질의 분야와 가까운 카탈로그를 '다른 분야'로 보지 않는 데 쓴다."""
+        out = set()
+        for d in domains:
+            out |= self._related.get(d, set())
+        return out - set(domains)
 
     def domains_in(self, text):
         norm = normalize(text)

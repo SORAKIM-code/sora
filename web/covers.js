@@ -37,7 +37,17 @@ const COVER_THEMES = {
     "M8 32h48a24 18 0 0 1-48 0z", "M24 54h16", "M24 10q-4 5 0 10", "M32 8q-4 5 0 10", "M40 10q-4 5 0 10"]],
   "보건": ["#f87171", "#5c1414", [
     "M26 8h12v16h16v12H38v16H26V36H10V24h16z", "M4 58h12l4-6 5 10 5-14 4 10h26"]],
-  "공통": ["#a1a1aa", "#27272a", ["M10 10h18v18H10z", "M36 10h18v18H36z", "M10 36h18v18H10z", "M36 36h18v18H36z"]],
+  "군수": ["#c2b04a", "#3d3a10", [
+    "M6 30h34v18H6z", "M40 36h10l8 8v4H40z", "M12 52a4 4 0 1 0 8 0a4 4 0 1 0-8 0", "M44 52a4 4 0 1 0 8 0a4 4 0 1 0-8 0",
+    "M10 30V18h12v12", "M24 30V12h12v18", "M16 18v-4", "M30 12V8"]],
+  "작전": ["#ef6f6c", "#4a1220", [
+    "M32 6l6 14h15l-12 9 5 15-14-9-14 9 5-15-12-9h15z", "M12 58h40", "M32 44v14"]],
+  "정보": ["#2dd4bf", "#0b3d3a", [
+    "M4 32q28-26 56 0q-28 26-56 0z", "M24 32a8 8 0 1 0 16 0a8 8 0 1 0-16 0", "M44 50l12 10", "M38 44a10 10 0 1 0 0.1 0"]],
+  "인사": ["#f472b6", "#521638", [
+    "M24 18a8 8 0 1 0 16 0a8 8 0 1 0-16 0", "M14 46a18 14 0 0 1 36 0v4H14z", "M6 30a5 5 0 1 0 10 0a5 5 0 1 0-10 0",
+    "M48 30a5 5 0 1 0 10 0a5 5 0 1 0-10 0", "M2 50a9 8 0 0 1 14-7", "M62 50a9 8 0 0 0-14-7"]],
+  "공통": ["#a1a1aa", "#27272a",["M10 10h18v18H10z", "M36 10h18v18H36z", "M10 36h18v18H10z", "M36 36h18v18H36z"]],
 };
 const DEFAULT_THEME = ["#64748b", "#1e293b", [
   "M12 14a20 7 0 1 0 40 0a20 7 0 1 0-40 0", "M12 14v36a20 7 0 0 0 40 0V14", "M12 26a20 7 0 0 0 40 0", "M12 38a20 7 0 0 0 40 0"]];
@@ -57,12 +67,30 @@ function rng(seed) {
   };
 }
 
-// 자료 유형 무늬: 시계열=선, 이력=기록 줄, 집계=막대, 코드표=격자
+// 자료 유형 무늬: 시계열=선, 이력·텍스트=기록 줄, 집계·통계=막대, 코드표=격자, 이미지·영상=사진 틀, 음성=파형, 공간=등고선
 function motif(dataType, rand) {
   const g = svg("g", { fill: "none", stroke: "#fff", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", opacity: ".75" });
   const x0 = 18, y0 = 96, w = 108, h = 50;
   const t = dataType || "";
-  if (t.includes("시계열")) {
+  if (t.includes("이미지") || t.includes("영상")) {
+    for (let i = 0; i < 3; i++) {
+      const x = x0 + i * 36, y = y0 - h + 8 + (i % 2) * 6;
+      g.append(svg("rect", { x, y, width: 30, height: 26, rx: 3, fill: "#fff", "fill-opacity": ".12" }),
+        svg("path", { d: `M${x + 3} ${y + 22}l8-9 6 6 4-4 6 7`, opacity: ".8" }),
+        svg("circle", { cx: x + 22, cy: y + 7, r: 2.5, fill: "#fff", "fill-opacity": ".6", stroke: "none" }));
+    }
+  } else if (t.includes("음성")) {
+    for (let i = 0; i < 18; i++) {
+      const bh = h * (0.15 + 0.7 * rand()) / 2;
+      const x = x0 + i * 6;
+      g.append(svg("path", { d: `M${x} ${y0 - h / 2 - bh}V${y0 - h / 2 + bh}`, "stroke-width": "3" }));
+    }
+  } else if (t.includes("공간")) {
+    for (let i = 0; i < 4; i++) {
+      const rx = 14 + i * 12, ry = 8 + i * 6;
+      g.append(svg("ellipse", { cx: x0 + w / 2 + rand() * 6, cy: y0 - h / 2, rx, ry, opacity: (0.9 - i * 0.18).toFixed(2) }));
+    }
+  } else if (t.includes("시계열")) {
     let d = "";
     for (let i = 0; i <= 12; i++) {
       const x = x0 + (w / 12) * i;
@@ -70,12 +98,12 @@ function motif(dataType, rand) {
       d += (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
     }
     g.append(svg("path", { d }), svg("path", { d: `M${x0} ${y0}H${x0 + w}`, opacity: ".35" }));
-  } else if (t.includes("집계")) {
+  } else if (t.includes("집계") || t.includes("통계") || t.includes("현황")) {
     for (let i = 0; i < 6; i++) {
       const bh = h * (0.3 + 0.7 * rand());
       g.append(svg("rect", { x: x0 + i * 18, y: y0 - bh, width: 11, height: bh, rx: 2, fill: "#fff", "fill-opacity": ".22" }));
     }
-  } else if (t.includes("코드")) {
+  } else if (t.includes("코드") || t.includes("참조")) {
     for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) {
       g.append(svg("rect", { x: x0 + c * 21, y: y0 - h + r * 17, width: 16, height: 12, rx: 2, "fill-opacity": ".15", fill: "#fff" }));
     }

@@ -13,9 +13,9 @@ from http.server import ThreadingHTTPServer
 from app.server import make_handler
 from app.service import Service, ServiceError
 from app.xlsx import read_xlsx, write_xlsx
-from tests.helpers import BASE, PASSWORDS, Clock, ids, login
+from tests.helpers import BASE, FIXTURE_XLSX, PASSWORDS, Clock, ids, login
 
-SAMPLE = os.path.join(BASE, "data", "catalogs.xlsx")
+SAMPLE = FIXTURE_XLSX
 
 
 def b64(path):
@@ -27,9 +27,9 @@ def copy_base(tmp):
     """실제 data/catalogs.xlsx 를 건드리지 않도록 서비스 폴더를 임시 폴더에 복사한다."""
     os.makedirs(os.path.join(tmp, "data"))
     shutil.copy(os.path.join(BASE, "config.json"), os.path.join(tmp, "config.json"))
-    for f in ("glossary.json", "clarify_rules.json", "users.json", "grants.json", "examples.json", "catalogs.json",
-              "catalogs.xlsx"):
+    for f in ("glossary.json", "clarify_rules.json", "users.json", "grants.json", "examples.json", "catalogs.json"):
         shutil.copy(os.path.join(BASE, "data", f), os.path.join(tmp, "data", f))
+    shutil.copy(SAMPLE, os.path.join(tmp, "data", "catalogs.xlsx"))
 
 
 def edited_workbook(path):

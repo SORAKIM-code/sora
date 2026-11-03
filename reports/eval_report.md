@@ -1,8 +1,8 @@
 # 평가 보고서 (자동 생성)
 
-- 실행 시각: 2026-11-03T14:38:08
+- 실행 시각: 2026-11-03T15:44:56
 - 범위: all (24건) · 후보 수 k=5
-- 모델·인덱스 버전: `{"index": "hybrid-bm25-charngram-v1", "semantic": "char-ngram-tfidf-v1", "extractor": "rule-extractor-v1", "explainer": "rule-template-v2", "glossary": "glossary-2026-11-03-v1", "clarify_rules": "clarify-rules-v1", "weights": "weights-2026-11-03-v1", "catalog_generation": 42}`
+- 모델·인덱스 버전: `{"index": "hybrid-bm25-charngram-v1", "semantic": "char-ngram-tfidf-v1", "extractor": "rule-extractor-v1", "explainer": "rule-template-v2", "glossary": "glossary-2026-11-03-v2", "clarify_rules": "clarify-rules-v1", "weights": "weights-2026-11-03-v1", "catalog_generation": 42}`
 
 > 기대 후보는 개발자가 쓴 **점검용 가상 값**입니다. 전문가 2인 이상의 사전 판정(PRD 13-1)으로 바꾸기 전에는
 > 아래 수치를 '추천 적합성' 실적으로 보고하지 마세요. 권한 위반 0건도 이 시험 범위 안의 결과일 뿐입니다.
@@ -15,9 +15,9 @@
 | 상위 5건 재현율(평균) | 81.6% | 73.2% |
 | 답변 보류 정확도(정답 없는 질의) | 100.0% | 100.0% |
 | 권한 밖 후보 노출 | 0건 | - |
-| 근거 일치도(사실 항목 ↔ 원문 행, 자동) | 100.0% (267/267) | - |
+| 근거 일치도(사실 항목 ↔ 원문 행, 자동) | 100.0% (296/296) | - |
 | 추가 질문 발생 | 1건 | - |
-| 처리시간 중앙값(인메모리, 단일 사용자) | 3.1 ms | - |
+| 처리시간 중앙값(인메모리, 단일 사용자) | 3.4 ms | - |
 
 ## 시나리오별
 

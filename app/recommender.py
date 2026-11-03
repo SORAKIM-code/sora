@@ -113,7 +113,8 @@ class Recommender:
         items = []
         if conds["domains"]:
             dom = values.get("domain")
-            st = "충족" if dom in conds["domains"] else ("부분" if dom == "공통" else "불충족")
+            near = dom == "공통" or dom in self.glossary.related(conds["domains"])
+            st = "충족" if dom in conds["domains"] else ("부분" if near else "불충족")
             items.append({"key": "domain", "label": "대상 분야", "wanted": ", ".join(conds["domains"]),
                           "actual": dom, "status": st})
         if conds["data_hints"]:
@@ -166,7 +167,9 @@ class Recommender:
             else:
                 cond = None
                 final = (w["keyword"] * kw + w["semantic"] * sem) / (w["keyword"] + w["semantic"])
-            if conds["domains"] and doc["values"].get("domain") not in conds["domains"] + ["공통"]:
+            # 가까운 분야(용어사전 related_domains, 예: 보급↔군수)는 다른 분야로 깎지 않는다.
+            ok_domains = set(conds["domains"]) | self.glossary.related(conds["domains"]) | {"공통"}
+            if conds["domains"] and doc["values"].get("domain") not in ok_domains:
                 final *= self.cfg["domain_mismatch_factor"]
             results.append({
                 "doc": doc, "score": round(final, 4),
