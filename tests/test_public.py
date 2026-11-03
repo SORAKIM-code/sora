@@ -151,6 +151,23 @@ class PublicHttp(unittest.TestCase):
         for text in ("시연용 가상 카탈로그", "카탈로그 추천받기", "AI 미연결"):
             self.assertIn(text, html)
 
+    def test_media_serves_only_images_in_images_folder(self):
+        png = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+               b"\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82")
+        path = os.path.join(BASE, "data", "images", "_test_cover.png")
+        with open(path, "wb") as f:
+            f.write(png)
+        try:
+            with urllib.request.urlopen(self.base + "/media/_test_cover.png") as r:
+                self.assertEqual((r.status, r.headers["Content-Type"]), (200, "image/png"))
+            for bad in ("/media/README.txt", "/media/..%2Fcatalogs.json", "/media/../../config.json", "/media/x.svg",
+                        "/media/none.png"):
+                with self.assertRaises(urllib.error.HTTPError, msg=bad) as cm:
+                    urllib.request.urlopen(self.base + bad)
+                self.assertEqual(cm.exception.code, 404, bad)
+        finally:
+            os.remove(path)
+
     def test_empty_and_long_query_rejected(self):
         self.assertEqual(self.post("/api/public/recommend", {"query": " "})[0], 400)
         self.assertEqual(self.post("/api/public/recommend", {"query": "가" * 1001})[0], 400)

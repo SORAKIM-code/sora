@@ -12,6 +12,7 @@ FIELD_SCHEMA = [
     ("last_checked", "최종 확인일", "식별과 관리", "text"),
     ("domain", "분야", "식별과 관리", "text"),
     ("keywords", "주제어", "식별과 관리", "list"),
+    ("image", "대표 이미지", "식별과 관리", "text"),
     ("analysis_target", "분석 대상", "데이터 내용", "text"),
     ("columns", "항목 정의", "데이터 내용", "list"),
     ("unit", "단위", "데이터 내용", "text"),

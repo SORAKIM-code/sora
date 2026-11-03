@@ -152,7 +152,8 @@ function card(c, rank) {
       h("p", { class: "cand-desc" }, e && e.description ? e.description.text : show(v.description)),
       e && e.hashtags.length ? h("div", { class: "hashtags", title: "등록된 주제어·분야·자료 유형에서 가져온 키워드" },
         e.hashtags.map((t) => h("span", { class: "hashtag" }, t.tag))) : null,
-    ));
+    ),
+    coverFor(c));
 
   if (!e) {
     return h("div", { class: "cand" }, head,
@@ -194,7 +195,7 @@ function metaTable(values, sources, origin) {
   for (const [key, label, group] of schema) (groups[group] = groups[group] || []).push([key, label]);
   return h("table", { class: "tbl" }, h("tbody", {}, Object.entries(groups).map(([g, fields]) => [
     h("tr", {}, h("th", { colspan: 2 }, g), h("th", {}, origin ? "엑셀 셀" : "위치")),
-    fields.map(([key, label]) => h("tr", {},
+    fields.filter(([key]) => key !== "image" || values.image).map(([key, label]) => h("tr", {},
       h("td", {}, label), h("td", {}, show(values[key])),
       h("td", { class: "small muted" }, fieldPlace(origin, key, sources[key])))),
   ])));

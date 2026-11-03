@@ -9,12 +9,15 @@ import re
 import sys
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .service import Service, ServiceError
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(BASE_DIR, "web")
+MEDIA_DIR = os.path.join(BASE_DIR, "data", "images")
+MEDIA_TYPES = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp", "gif": "image/gif"}
+MEDIA_NAME = re.compile(r"[0-9A-Za-z가-힣_\-. ]{1,100}\.(png|jpg|jpeg|webp|gif)", re.IGNORECASE)
 MAX_BODY = 64 * 1024
 
 ROUTES = []
@@ -199,6 +202,22 @@ def make_handler(svc):
             self.end_headers()
             self.wfile.write(data)
 
+        def _media(self, path):
+            """카탈로그 대표 이미지: data/images 안의 그림 파일만, 정해진 확장자만 내준다."""
+            name = unquote(path[len("/media/"):])
+            if not MEDIA_NAME.fullmatch(name):
+                return self._json(404, {"error": "없는 경로입니다."})
+            full = os.path.realpath(os.path.join(MEDIA_DIR, name))
+            if not full.startswith(os.path.realpath(MEDIA_DIR) + os.sep) or not os.path.isfile(full) \
+                    or os.path.getsize(full) > 5 * 1024 * 1024:
+                return self._json(404, {"error": "없는 경로입니다."})
+            with open(full, "rb") as f:
+                data = f.read()
+            self._headers(200, MEDIA_TYPES[name.rsplit(".", 1)[1].lower()], len(data))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(data)
+
         def _static(self, path):
             pages = {"/": "index.html", "/index.html": "index.html", "/admin": "admin.html"}
             rel = pages.get(path) or (path[len("/static/"):] if path.startswith("/static/") else None)
@@ -220,6 +239,8 @@ def make_handler(svc):
         def _dispatch(self, method):
             self.set_cookie = None
             url = urlparse(self.path)
+            if method == "GET" and url.path.startswith("/media/"):
+                return self._media(url.path)
             if method == "GET" and not url.path.startswith("/api/"):
                 return self._static(url.path)
             for m, rx, fn, auth in ROUTES:
