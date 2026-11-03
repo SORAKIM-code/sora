@@ -20,6 +20,9 @@ MEDIA_TYPES = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "w
 MEDIA_NAME = re.compile(r"[0-9A-Za-z가-힣_\-. ]{1,100}\.(png|jpg|jpeg|webp|gif)", re.IGNORECASE)
 MAX_BODY = 64 * 1024
 MAX_UPLOAD_BODY = 8 * 1024 * 1024  # 엑셀 5MB 를 base64 로 담은 JSON
+# 관리 기능을 끈 배포(config admin_enabled = false)에서 여는 경로: 첫 화면과 시연 방문자 API 만
+PUBLIC_PAGES = {"/", "/index.html"}
+PUBLIC_PREFIXES = ("/static/", "/media/", "/api/public/")
 
 ROUTES = []
 
@@ -262,6 +265,9 @@ def make_handler(svc):
         def _dispatch(self, method):
             self.set_cookie = None
             url = urlparse(self.path)
+            if not svc.cfg.get("admin_enabled", True) and not (
+                    url.path in PUBLIC_PAGES or url.path.startswith(PUBLIC_PREFIXES)):
+                return self._json(404, {"error": "없는 경로입니다."})
             if method == "GET" and url.path.startswith("/media/"):
                 return self._media(url.path)
             if method == "GET" and not url.path.startswith("/api/"):

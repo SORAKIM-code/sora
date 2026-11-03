@@ -199,7 +199,8 @@ button:disabled { opacity: .45; cursor: default; }
 .cand-sec li::marker { color: var(--muted); }
 .src { font-size: 12px; margin-left: 8px; white-space: nowrap; }
 .data-shape { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 2px 0 10px; font-size: 14.5px; }
-.data-shape .shape-item { display: inline-flex; align-items: baseline; gap: 4px; }
+.data-shape .shape-item { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.data-shape .shape-item > .muted { white-space: nowrap; flex: none; }  /* '전처리' 같은 이름표가 세로로 꺾이지 않게 */
 .size-tag { color: var(--ink); font-weight: 600; }
 .who { font-size: 12.5px; color: var(--check); margin-left: 6px; }
 .badge { display: inline-block; padding: 1px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 700; }
@@ -250,6 +251,8 @@ main.narrow { max-width: 1000px; }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .hero h1 .hero-name { font-size: 1.35em; font-weight: 900; letter-spacing: -0.02em; }
+.hero h1 .hero-en { white-space: nowrap; }  /* 줄이 바뀌어도 '(Military＋Match)'는 한 덩어리로 */
+@media (max-width: 520px) { .hero h1 .hero-name { font-size: 1.15em; } }
 .hero .lead { font-size: 17px; max-width: 760px; }
 .demo-badge {
   display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700;

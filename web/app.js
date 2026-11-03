@@ -53,6 +53,7 @@ async function init() {
     return;
   }
   const info = state.info;
+  if (info.admin_enabled === false) $("admin-link").remove();  // 관리 기능을 끈 배포(Vercel)
   $("engine-label").textContent = info.engine.label + ".";
   $("engine-label").classList.remove("hidden");
   $("retention").textContent = `입력한 연구 목적은 시연 품질 점검을 위해 ${info.retention_days}일 동안 보관한 뒤 원문을 삭제합니다. ` +

@@ -437,6 +437,7 @@ class Service:
         examples = _load_json(os.path.join(self.base_dir, "data", "examples.json"))["examples"]
         docs, _ = self._visible_docs(self.demo_session()["user"], self.cfg["demo_purpose"])
         return {"examples": examples, "catalog_count": len(docs), "engine": self.engine_info(),
+                "admin_enabled": bool(self.cfg.get("admin_enabled", True)),
                 "max_query_chars": self.cfg["max_query_chars"], "schema": FIELD_SCHEMA,
                 "retention_days": self.cfg["raw_query_retention_days"]}
 

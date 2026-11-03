@@ -4,7 +4,9 @@ vercel.json 이 모든 경로를 이 함수로 보낸다(/api/index?path=/원래
 Vercel 에서는 파일을 오래 저장할 수 없으므로 DB 는 임시 폴더(/tmp)에 두고,
 함수가 새로 뜰 때마다 data/catalogs.xlsx 를 다시 읽는다.
 → 첫 화면(연구 목적 입력 → 추천 → 근거)은 그대로 동작한다.
-→ 관리 화면의 로그인·엑셀 올리기·로그는 인스턴스가 바뀌면 사라지므로 시연용으로만 쓴다.
+→ 관리 화면(/admin)과 로그인·관리 API 는 기본으로 닫는다. 공개 저장소의 시연 계정 비밀번호로
+  누구나 들어올 수 있고, 로그인·업로드도 인스턴스가 바뀌면 사라지기 때문이다.
+  꼭 열어야 하면 Vercel 환경변수 MILMATCH_ENABLE_ADMIN=1 (시연 계정 비밀번호를 바꾼 뒤에만).
 """
 import os
 import sys
@@ -18,7 +20,8 @@ from app.server import make_handler  # noqa: E402
 from app.service import Service  # noqa: E402
 
 DB_PATH = os.environ.get("CATALOG_DB") or os.path.join(tempfile.gettempdir(), "catalog-recommender.db")
-_svc = Service(BASE, db_path=DB_PATH)
+ADMIN_ENABLED = os.environ.get("MILMATCH_ENABLE_ADMIN") == "1"
+_svc = Service(BASE, db_path=DB_PATH, config_overrides={"admin_enabled": ADMIN_ENABLED})
 
 
 def original_path(path):

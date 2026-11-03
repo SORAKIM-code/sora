@@ -23,8 +23,12 @@ python run.py
 GitHub 저장소를 Vercel 에 연결하면 push 할 때마다 배포된다(Root Directory 는 비워 둔다).
 
 - 첫 화면 흐름(연구 목적 입력 → 추천 → 근거)은 그대로 동작한다. 카탈로그는 배포된 `data/catalogs.xlsx` 를 읽는다.
-- Vercel 은 파일을 오래 저장하지 못한다. DB 는 함수의 임시 폴더(/tmp)에 있어 인스턴스가 바뀌면 사라진다.
-  그래서 `/admin` 의 로그인·엑셀 올리기·로그는 시연용으로만 쓴다. 카탈로그를 바꾸려면 엑셀 파일을 저장소에 넣고 push 한다.
+- `vercel.json` 은 `routes` 로 **모든 경로를 함수에 보낸다**. `rewrites` 를 쓰면 Vercel 이 저장소 파일
+  (`data/users.json`·`config.json` 등)을 먼저 그대로 내주므로 쓰지 않는다.
+- Vercel 배포에서는 `/admin`·로그인·관리 API 를 닫는다(첫 화면과 `/api/public/*` 만 열림).
+  공개 저장소의 시연 계정 비밀번호로 누구나 들어올 수 있고, DB 가 함수 임시 폴더(/tmp)라 로그인·업로드도 유지되지 않기 때문이다.
+  꼭 열어야 하면 시연 계정 비밀번호를 바꾼 뒤 Vercel 환경변수 `MILMATCH_ENABLE_ADMIN=1` 을 넣는다.
+- 카탈로그를 바꾸려면 엑셀 파일을 저장소에 넣고 push 한다.
 - 오래 남는 저장(신청·로그인·첨부)은 `supabase/` 의 스키마로 옮길 예정이다.
 
 ## 카탈로그 목록(엑셀)
