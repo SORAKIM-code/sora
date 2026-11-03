@@ -14,6 +14,8 @@ from . import explainer as explainer_mod
 from .audit import AuditLog
 from .catalogs import CatalogError, CatalogStore, parse_spec, render_spec, review_warnings
 from .db import DB
+from .excel_catalog import parse_workbook, write_workbook
+from .xlsx import XlsxError
 from .glossary import Glossary
 from .policy import Policy, hash_password, verify_password
 from .recommender import EXTRACTOR_VERSION, Recommender
@@ -58,8 +60,13 @@ class Service:
         self.explainer = explainer_mod.RuleExplainer()
         self._index_cache = OrderedDict()
         self._result_cache = OrderedDict()
+        excel = self.cfg.get("catalog_excel")
+        self.excel_path = os.path.join(base_dir, excel) if excel else None
         if not self.db.one("SELECT id FROM users LIMIT 1"):
-            self._seed(data_dir)
+            self._seed(data_dir, with_catalogs=not self._excel_exists())
+        self.last_import = None
+        if self._excel_exists():
+            self.last_import = self.sync_excel_if_changed()
 
     # ── 공통 ──
     def now(self):
@@ -79,7 +86,102 @@ class Service:
         self._result_cache.clear()
 
     # ── 초기 자료 ──
-    def _seed(self, data_dir):
+    def _excel_exists(self):
+        return bool(self.excel_path) and os.path.isfile(self.excel_path)
+
+    def sync_excel_if_changed(self):
+        """설정된 엑셀 파일이 마지막 반영 때와 다르면 다시 반영한다. 읽기에 실패하면 기존 카탈로그를 그대로 쓴다."""
+        with open(self.excel_path, "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        last = self.db.get_meta("excel_import") or {}
+        if last.get("sha256") == digest:
+            return {"status": "unchanged", **last}
+        try:
+            result = self.sync_excel(self.excel_path, by="excel-import")
+        except (ServiceError, XlsxError) as e:
+            return {"status": "failed", "error": getattr(e, "message", str(e))}
+        result["sha256"] = digest
+        self.db.set_meta("excel_import", {k: result[k] for k in ("file", "sha256", "at", "counts")})
+        return {"status": "imported", **result}
+
+    def sync_excel(self, path, by="excel-import"):
+        """엑셀 목록을 카탈로그 저장소에 반영한다.
+
+        - 검수완료 행: 값이 바뀌었으면 새 버전으로 승인(검색 반영), 같으면 그대로
+        - 검수대기 행: 검색에 나오지 않는 초안으로 둔다
+        - 철회 행, 그리고 엑셀에서 빠진 카탈로그: 철회(검색에서 즉시 제외)
+        """
+        parsed = parse_workbook(path)
+        if parsed["fatal"]:
+            raise ServiceError(400, parsed["fatal"])
+        counts = {"added": 0, "updated": 0, "unchanged": 0, "draft": 0, "withdrawn": 0, "skipped": len(parsed["errors"])}
+        changed = []
+        in_excel = set()
+        for row in parsed["rows"]:
+            cid, values, origin = row["id"], row["values"], row["origin"]
+            in_excel.add(cid)
+            note = f"엑셀 반영: {origin['file']} {origin['row']}행"
+            text, sources = render_spec(values)
+            vs = self.store.versions(cid)
+            approved = next((v for v in vs if v["status"] == "approved"), None)
+            latest = vs[-1] if vs else None
+            if row["status"] == "withdrawn":
+                if approved:
+                    self.store.withdraw(cid, by, "엑셀에서 철회로 표시")
+                    counts["withdrawn"] += 1
+                    changed.append(cid)
+                elif not vs:
+                    self.store._insert(cid, 1, values, sources, text, by, note=note, origin=origin)
+                    self.store.mark_withdrawn(cid, 1, note + " (철회)")
+                continue
+            if approved and approved["values"] == values and row["status"] == "approved" \
+                    and not (latest and latest["status"] == "draft"):
+                if approved.get("origin") != origin:
+                    self.store.set_origin(cid, approved["version"], origin)
+                counts["unchanged"] += 1
+                continue
+            if row["status"] == "draft" and approved:
+                # 검수대기로 되돌린 카탈로그는 다시 검수될 때까지 검색에서 뺀다.
+                self.store.withdraw(cid, by, "엑셀에서 검수대기로 변경")
+                changed.append(cid)
+                vs = self.store.versions(cid)
+                latest = vs[-1]
+            if latest and latest["status"] == "draft":
+                ver = latest["version"]
+                self.store.replace_draft(cid, ver, values, sources, text, note, origin)
+            else:
+                ver = (latest["version"] + 1) if latest else 1
+                self.store._insert(cid, ver, values, sources, text, by, note=note, origin=origin)
+            if row["status"] == "approved":
+                self.store.approve(cid, ver, by, note=note)
+                counts["updated" if approved else "added"] += 1
+                changed.append(cid)
+            else:
+                counts["draft"] += 1
+        for c in self.store.approved():
+            if c["id"] not in in_excel:
+                self.store.withdraw(c["id"], by, "엑셀 목록에서 빠짐")
+                counts["withdrawn"] += 1
+                changed.append(c["id"])
+        self.db.bump_generation()
+        self._invalidate()
+        result = {"file": os.path.basename(path), "at": self.now(), "counts": counts,
+                  "errors": parsed["errors"], "warnings": parsed["warnings"]}
+        self.audit.write("excel_import", by, evidence=[{"catalog_id": c} for c in changed[:200]],
+                         model=self.model_versions(), outcome=json.dumps(counts, ensure_ascii=False))
+        return result
+
+    def export_excel(self, path):
+        """현재 저장소의 카탈로그(카탈로그마다 최신 버전)를 엑셀로 내보낸다."""
+        latest = {}
+        for r in self.db.all("SELECT catalog_id, MAX(version) v FROM catalog_versions GROUP BY catalog_id ORDER BY catalog_id"):
+            latest[r["catalog_id"]] = self.store.version(r["catalog_id"], r["v"])
+        rows = [{"id": cid, "status": v["status"] if v["status"] != "superseded" else "approved", "values": v["values"]}
+                for cid, v in latest.items()]
+        write_workbook(path, rows)
+        return len(rows)
+
+    def _seed(self, data_dir, with_catalogs=True):
         for u in _load_json(os.path.join(data_dir, "users.json"))["users"]:
             # 비밀번호가 없는 계정(시연 방문자)은 로그인할 수 없도록 임의 값으로 막는다.
             salt, h = hash_password(u.get("password") or secrets.token_urlsafe(32))
@@ -90,6 +192,8 @@ class Service:
                         " VALUES(?,?,?,?,?,?,?,?,?)",
                         (g["subject_type"], g["subject_id"], g["purpose"], json.dumps(g["levels"], ensure_ascii=False),
                          json.dumps(g["domains"], ensure_ascii=False), g["valid_from"], g["valid_to"], "seed", self.now()))
+        if not with_catalogs:
+            return
         cat = _load_json(os.path.join(data_dir, "catalogs.json"))
         defaults = cat.get("defaults", {})
         dept = cat.get("departments", {})
@@ -331,6 +435,7 @@ class Service:
                     "confirmer": f"데이터 소관 부서({v.get('department') or '미확인'}) · 거점 운영부서",
                     "reviewed_by": d["reviewed_by"], "reviewed_at": d["reviewed_at"],
                     "last_checked": v.get("last_checked"),
+                    "origin": d.get("origin"),
                 },
                 "metadata": v, "sources": d["sources"],
             })

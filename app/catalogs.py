@@ -69,6 +69,7 @@ def _row(r):
         "values": d["values"], "sources": {k: int(v) for k, v in d.get("sources", {}).items()},
         "source_text": r["source_text"], "created_by": r["created_by"], "created_at": r["created_at"],
         "reviewed_by": r["reviewed_by"], "reviewed_at": r["reviewed_at"], "note": r["note"],
+        "origin": d.get("origin"),
     }
 
 
@@ -135,11 +136,26 @@ class CatalogStore:
         self._insert(catalog_id, 1, values, sources, source_text, by)
         return catalog_id, 1
 
-    def _insert(self, catalog_id, version, values, sources, source_text, by, note=None):
-        data = json.dumps({"values": values, "sources": sources or {}}, ensure_ascii=False)
+    def _insert(self, catalog_id, version, values, sources, source_text, by, note=None, origin=None):
+        data = json.dumps({"values": values, "sources": sources or {}, "origin": origin}, ensure_ascii=False)
         self.db.run("INSERT INTO catalog_versions(catalog_id,version,status,data,source_text,created_by,created_at,note)"
                     " VALUES(?,?,?,?,?,?,?,?)",
                     (catalog_id, version, "draft", data, source_text, by, self.now(), note))
+
+    def replace_draft(self, catalog_id, version, values, sources, source_text, note, origin=None):
+        data = json.dumps({"values": values, "sources": sources or {}, "origin": origin}, ensure_ascii=False)
+        self.db.run("UPDATE catalog_versions SET data=?, source_text=?, note=? WHERE catalog_id=? AND version=? AND status='draft'",
+                    (data, source_text, note, catalog_id, version))
+
+    def set_origin(self, catalog_id, version, origin):
+        """값은 그대로이고 엑셀 위치(행·열)만 바뀐 경우."""
+        cur = self.version(catalog_id, version)
+        data = json.dumps({"values": cur["values"], "sources": cur["sources"], "origin": origin}, ensure_ascii=False)
+        self.db.run("UPDATE catalog_versions SET data=? WHERE catalog_id=? AND version=?", (data, catalog_id, version))
+
+    def mark_withdrawn(self, catalog_id, version, note):
+        self.db.run("UPDATE catalog_versions SET status='withdrawn', note=? WHERE catalog_id=? AND version=?",
+                    (note, catalog_id, version))
 
     def update_draft(self, catalog_id, version, values, by):
         cur = self.version(catalog_id, version)

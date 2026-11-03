@@ -2,6 +2,7 @@
   "host": "127.0.0.1",
   "port": 8765,
   "db_path": "var/catalog.db",
+  "catalog_excel": "data/catalogs.xlsx",
   "weights": {"keyword": 0.45, "semantic": 0.30, "condition": 0.25},
   "weights_version": "weights-2026-11-03-v1",
   "domain_mismatch_factor": 0.6,

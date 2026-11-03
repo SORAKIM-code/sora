@@ -113,8 +113,17 @@ function renderClarify(r) {
   result.replaceChildren(box);
 }
 
-function srcNote(line) {
+// 근거 위치: 엑셀에서 온 카탈로그면 '파일 N행 X열', 아니면 등록 정보 행 번호
+function srcNote(origin, field, line) {
+  if (origin && field && origin.cols && origin.cols[field]) {
+    return h("span", { class: "src muted" }, `${origin.file} ${origin.row}행 ${origin.cols[field]}열`);
+  }
   return line ? h("span", { class: "src muted" }, `등록 정보 ${line}행`) : null;
+}
+
+function fieldPlace(origin, key, line) {
+  if (origin && origin.cols && origin.cols[key]) return `${origin.cols[key]}${origin.row}`;
+  return line ? `${line}행` : "—";
 }
 
 function section(cls, title, ...body) {
@@ -130,7 +139,7 @@ function card(c, rank) {
     type: "button", class: "link", onclick: () => {
       const open = detail.classList.toggle("hidden");
       toggle.textContent = open ? "등록 정보 전체 보기" : "등록 정보 접기";
-      if (!detail.childNodes.length) detail.append(metaTable(v, c.sources));
+      if (!detail.childNodes.length) detail.append(metaTable(v, c.sources, c.availability.origin));
     },
   }, "등록 정보 전체 보기");
 
@@ -154,7 +163,7 @@ function card(c, rank) {
     section("full", "포함된 주요 데이터 항목",
       e.columns.length ? h("ul", { class: "cols" }, e.columns.map((x) => h("li", {}, x.text))) : h("p", {}, "등록된 데이터 항목이 없습니다 (미확인).")),
     section("sec-fact left", "연구 목적에 적합한 이유",
-      h("ul", {}, e.reasons.map((x) => h("li", {}, x.text, srcNote(x.source_line))))),
+      h("ul", {}, e.reasons.map((x) => h("li", {}, x.text, srcNote(c.availability.origin, x.field, x.source_line))))),
     section("sec-ai", "연구에 활용할 수 있는 방법",
       h("ul", {}, e.methods.map((x) => h("li", {}, x.text))),
       h("div", { class: "small muted" }, "규칙으로 만든 시연용 제안입니다. 연구 가능성이나 자료 제공 승인을 보장하지 않습니다.")),
@@ -173,19 +182,21 @@ function card(c, rank) {
   );
   return h("div", { class: "cand" }, head, body,
     h("div", { class: "cand-sec full row" }, toggle, h("span", { class: "spacer" }),
-      h("span", { class: "small muted" }, `메타데이터 검수 ${c.availability.reviewed_by || "미확인"} · 최종 확인 ${c.availability.last_checked || "미확인"}`)),
+      h("span", { class: "small muted" }, c.availability.origin
+        ? `출처 ${c.availability.origin.file} · ${c.availability.origin.sheet} 시트 ${c.availability.origin.row}행 · 최종 확인 ${c.availability.last_checked || "미확인"}`
+        : `메타데이터 검수 ${c.availability.reviewed_by || "미확인"} · 최종 확인 ${c.availability.last_checked || "미확인"}`)),
     detail);
 }
 
-function metaTable(values, sources) {
+function metaTable(values, sources, origin) {
   const schema = (state.info && state.info.schema) || [];
   const groups = {};
   for (const [key, label, group] of schema) (groups[group] = groups[group] || []).push([key, label]);
   return h("table", { class: "tbl" }, h("tbody", {}, Object.entries(groups).map(([g, fields]) => [
-    h("tr", {}, h("th", { colspan: 3 }, g)),
+    h("tr", {}, h("th", { colspan: 2 }, g), h("th", {}, origin ? "엑셀 셀" : "위치")),
     fields.map(([key, label]) => h("tr", {},
       h("td", {}, label), h("td", {}, show(values[key])),
-      h("td", { class: "small muted" }, sources[key] ? `${sources[key]}행` : "—"))),
+      h("td", { class: "small muted" }, fieldPlace(origin, key, sources[key])))),
   ])));
 }
 

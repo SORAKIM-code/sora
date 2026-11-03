@@ -270,6 +270,15 @@ def main():
     svc = Service(BASE_DIR)
     host, port = svc.cfg["host"], int(os.environ.get("PORT", svc.cfg["port"]))
     httpd = ThreadingHTTPServer((host, port), make_handler(svc))
+    imp = svc.last_import
+    if imp is None:
+        print("카탈로그: 엑셀 파일이 없어 data/catalogs.json 의 가상 카탈로그를 사용합니다.", flush=True)
+    elif imp["status"] == "failed":
+        print(f"[주의] 엑셀 카탈로그를 읽지 못해 이전 카탈로그를 그대로 씁니다: {imp['error']}", flush=True)
+    else:
+        print(f"카탈로그: {svc.excel_path} ({'변경 없음' if imp['status'] == 'unchanged' else '반영함'}) {imp.get('counts')}", flush=True)
+        for e in imp.get("errors", []):
+            print("  [오류]", e, flush=True)
     print(f"군 데이터 카탈로그 추천 서비스(시제품): http://{host}:{port}/", flush=True)
     try:
         httpd.serve_forever()
