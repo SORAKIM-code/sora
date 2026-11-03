@@ -17,6 +17,16 @@ python run.py
 브라우저에서 http://127.0.0.1:8765/ 을 연다. 로그인은 없다.
 처음 실행할 때 `var/catalog.db` 가 만들어지고 가상 자료가 들어간다. 초기 상태로 되돌리려면 `var/` 폴더를 지운다.
 
+### Vercel 배포(시연용)
+
+`api/index.py` 가 기존 서버를 Vercel Python 함수로 감싸고, `vercel.json` 이 모든 경로를 그 함수로 보낸다.
+GitHub 저장소를 Vercel 에 연결하면 push 할 때마다 배포된다(Root Directory 는 비워 둔다).
+
+- 첫 화면 흐름(연구 목적 입력 → 추천 → 근거)은 그대로 동작한다. 카탈로그는 배포된 `data/catalogs.xlsx` 를 읽는다.
+- Vercel 은 파일을 오래 저장하지 못한다. DB 는 함수의 임시 폴더(/tmp)에 있어 인스턴스가 바뀌면 사라진다.
+  그래서 `/admin` 의 로그인·엑셀 올리기·로그는 시연용으로만 쓴다. 카탈로그를 바꾸려면 엑셀 파일을 저장소에 넣고 push 한다.
+- 오래 남는 저장(신청·로그인·첨부)은 `supabase/` 의 스키마로 옮길 예정이다.
+
 ## 카탈로그 목록(엑셀)
 
 서비스는 **`data/catalogs.xlsx`** 의 카탈로그로 검색한다(`config.json` 의 `catalog_excel`).

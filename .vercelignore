@@ -1,0 +1,7 @@
+var/
+tests/
+eval/
+reports/
+**/__pycache__/
+*.pyc
+.env*
