@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>밀매치 썸네일 1280x800</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&family=JetBrains+Mono:wght@500;700&display=block" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05080d;
+    --ink: #f3f7fb;
+    --ink-2: #b8c4d2;
+    --muted: #6f8197;
+    --cyan: #3ee6c8;
+    --cyan-2: #1fb59d;
+    --olive: #b7c46a;
+    --line: rgba(120, 200, 190, .14);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 800px; overflow: hidden; background: var(--bg); }
+  body { font-family: "Noto Sans KR", "Malgun Gothic", "맑은 고딕", sans-serif; color: var(--ink); }
+  .stage { position: relative; width: 1280px; height: 800px; overflow: hidden;
+    background:
+      radial-gradient(900px 700px at 78% 50%, rgba(31, 181, 157, .16), transparent 60%),
+      radial-gradient(700px 500px at 8% 100%, rgba(183, 196, 106, .10), transparent 60%),
+      linear-gradient(160deg, #08111a 0%, #05080d 55%, #04060a 100%); }
+  svg.bg { position: absolute; inset: 0; }
+  .mono { font-family: "JetBrains Mono", Consolas, monospace; }
+
+  /* 왼쪽 글자 영역 */
+  .copy { position: absolute; left: 92px; top: 0; bottom: 0; width: 640px; display: flex; flex-direction: column; justify-content: center; }
+  .eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
+  .mark { width: 46px; height: 46px; border-radius: 11px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--cyan), #5a8dff); color: #04121a; font-weight: 900; font-size: 19px; letter-spacing: -.02em;
+    box-shadow: 0 0 28px rgba(62, 230, 200, .35); }
+  .eyebrow-text { font-size: 19px; font-weight: 700; color: var(--ink-2); letter-spacing: .01em; }
+  .eyebrow-text b { color: var(--cyan); font-weight: 700; }
+
+  h1 { font-size: 168px; line-height: .95; font-weight: 900; letter-spacing: -.045em;
+    background: linear-gradient(180deg, #ffffff 0%, #dff8f3 55%, #9fe9db 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 6px 30px rgba(62, 230, 200, .22)); }
+  .en { margin-top: 18px; font-size: 30px; font-weight: 700; letter-spacing: .14em; color: var(--cyan); }
+  .en .plus { color: var(--olive); margin: 0 .25em; }
+  .rule { width: 96px; height: 4px; border-radius: 2px; margin: 34px 0 28px;
+    background: linear-gradient(90deg, var(--cyan), rgba(62, 230, 200, 0)); }
+  .tagline { font-size: 38px; line-height: 1.34; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+  .tagline em { font-style: normal; color: var(--cyan); }
+
+  .steps { display: flex; align-items: center; gap: 10px; margin-top: 40px; }
+  .step { display: flex; align-items: center; gap: 10px; padding: 11px 18px 11px 12px; border-radius: 12px;
+    background: rgba(14, 26, 36, .85); border: 1px solid rgba(62, 230, 200, .28); font-size: 19px; font-weight: 700; color: var(--ink); }
+  .step i { font-style: normal; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+    background: rgba(62, 230, 200, .16); color: var(--cyan); font-size: 15px; }
+  .arrow { color: var(--muted); font-size: 20px; font-weight: 700; }
+
+  /* HUD 문구 */
+  .hud { position: absolute; font-size: 13px; letter-spacing: .16em; color: rgba(150, 220, 205, .55); }
+  .hud.tl { left: 92px; top: 38px; }
+  .hud.tr { right: 56px; top: 38px; text-align: right; }
+  .hud.bl { left: 92px; bottom: 34px; }
+  .hud.br { right: 56px; bottom: 34px; text-align: right; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); margin-right: 8px;
+    box-shadow: 0 0 10px var(--cyan); vertical-align: 1px; }
+  .demo { display: inline-block; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(183, 196, 106, .5);
+    color: var(--olive); font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; letter-spacing: 0; font-size: 14px; font-weight: 700; }
+
+  /* 레이더 노드 라벨 */
+  .node { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 8px;
+    padding: 8px 13px; border-radius: 10px; background: rgba(8, 18, 26, .9); border: 1px solid rgba(62, 230, 200, .35);
+    font-size: 16px; font-weight: 700; color: var(--ink); white-space: nowrap; box-shadow: 0 6px 24px rgba(0, 0, 0, .45); }
+  .node b { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; color: var(--cyan); font-weight: 700; }
+  .node.hot { border-color: var(--cyan); box-shadow: 0 0 0 1px rgba(62, 230, 200, .35), 0 0 26px rgba(62, 230, 200, .35); }
+  .node.dim { opacity: .62; }
+  .core { position: absolute; left: 955px; top: 400px; transform: translate(-50%, -50%); text-align: center;
+    width: 156px; height: 156px; border-radius: 50%; display: grid; place-items: center; align-content: center; gap: 2px;
+    background: radial-gradient(circle at 50% 40%, rgba(62, 230, 200, .35), rgba(8, 20, 28, .95) 70%);
+    border: 2px solid rgba(62, 230, 200, .75); box-shadow: 0 0 50px rgba(62, 230, 200, .35), inset 0 0 30px rgba(62, 230, 200, .2); }
+  .core .k { font-size: 13px; letter-spacing: .2em; color: var(--cyan); font-family: "JetBrains Mono", Consolas, monospace; }
+  .core .v { font-size: 22px; font-weight: 900; color: #fff; line-height: 1.2; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <svg class="bg" width="1280" height="800" viewBox="0 0 1280 800" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M40 0H0V40" fill="none" stroke="rgba(120,200,190,.06)" stroke-width="1"/>
+      </pattern>
+      <radialGradient id="fadeGrid" cx="72%" cy="50%" r="70%">
+        <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+      </radialGradient>
+      <mask id="gridMask"><rect width="1280" height="800" fill="url(#fadeGrid)"/></mask>
+      <linearGradient id="sweep" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#3ee6c8" stop-opacity="0"/>
+        <stop offset="1" stop-color="#3ee6c8" stop-opacity=".32"/>
+      </linearGradient>
+      <linearGradient id="link" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#3ee6c8" stop-opacity=".9"/>
+        <stop offset="1" stop-color="#3ee6c8" stop-opacity=".25"/>
+      </linearGradient>
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="4" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <rect width="1280" height="800" fill="url(#grid)" mask="url(#gridMask)"/>
+
+    <!-- 등고선(지형) -->
+    <g fill="none" stroke="rgba(183,196,106,.10)" stroke-width="1.2">
+      <path d="M-40 700 C 120 640, 260 720, 420 660 S 700 700, 760 820"/>
+      <path d="M-40 735 C 140 680, 270 750, 430 700 S 690 740, 740 830"/>
+      <path d="M-40 770 C 150 720, 280 780, 440 740 S 680 775, 720 840"/>
+      <path d="M-40 665 C 100 600, 250 690, 410 620 S 710 660, 790 810"/>
+    </g>
+
+    <!-- 레이더 -->
+    <g transform="translate(955 400)">
+      <g fill="none" stroke="rgba(62,230,200,.20)" stroke-width="1.2">
+        <circle r="110"/><circle r="190"/><circle r="270"/>
+        <circle r="345" stroke="rgba(62,230,200,.10)" stroke-dasharray="3 7"/>
+      </g>
+      <g stroke="rgba(62,230,200,.14)" stroke-width="1">
+        <path d="M-345 0H345M0 -345V345"/>
+        <path d="M-244 -244L244 244M-244 244L244 -244" stroke-dasharray="2 8"/>
+      </g>
+      <!-- 눈금 -->
+      <g stroke="rgba(62,230,200,.35)" stroke-width="1.4">
+        <path d="M0 -270v10M0 270v-10M-270 0h10M270 0h-10"/>
+      </g>
+      <!-- 스윕 -->
+      <path d="M0 0 L270 0 A270 270 0 0 0 190.9 -190.9 Z" fill="url(#sweep)" transform="rotate(-18)"/>
+      <path d="M0 0 L270 0" stroke="#3ee6c8" stroke-opacity=".75" stroke-width="2" transform="rotate(-18)" filter="url(#glow)"/>
+
+      <!-- 매칭 연결선 (중심 → 후보) -->
+      <g stroke="url(#link)" stroke-width="2.2" fill="none" filter="url(#glow)">
+        <path d="M0 0 L190 -150"/>
+        <path d="M0 0 L215 70"/>
+        <path d="M0 0 L-60 205"/>
+      </g>
+      <g stroke="rgba(62,230,200,.22)" stroke-width="1.4" fill="none" stroke-dasharray="4 6">
+        <path d="M0 0 L-175 -165"/>
+        <path d="M0 0 L95 265"/>
+      </g>
+      <!-- 후보 점 -->
+      <g fill="#3ee6c8" filter="url(#glow)">
+        <circle cx="190" cy="-150" r="6"/><circle cx="215" cy="70" r="6"/><circle cx="-60" cy="205" r="6"/>
+      </g>
+      <g fill="rgba(62,230,200,.45)">
+        <circle cx="-175" cy="-165" r="4.5"/><circle cx="95" cy="265" r="4.5"/>
+        <circle cx="-240" cy="60" r="3"/><circle cx="60" cy="-240" r="3"/><circle cx="250" cy="-40" r="2.5"/>
+        <circle cx="-120" cy="-60" r="2.5"/><circle cx="140" cy="160" r="2.5"/>
+      </g>
+    </g>
+
+    <!-- HUD 모서리 -->
+    <g fill="none" stroke="rgba(62,230,200,.5)" stroke-width="2">
+      <path d="M28 64V28H64"/><path d="M1216 28H1252V64"/>
+      <path d="M28 736V772H64"/><path d="M1252 736V772H1216"/>
+    </g>
+  </svg>
+
+  <!-- 레이더 라벨 -->
+  <div class="core"><span class="k">PURPOSE</span><span class="v">연구 목적</span></div>
+  <div class="node hot" style="left:1145px; top:250px;"><b>0.81</b>위성영상 토지피복 분류</div>
+  <div class="node hot" style="left:1170px; top:470px;"><b>0.69</b>차량 정비 이력</div>
+  <div class="node hot" style="left:895px; top:605px;"><b>0.67</b>수리부속 조달 기간</div>
+  <div class="node dim" style="left:780px; top:235px;">통신 메시지 분류</div>
+  <div class="node dim" style="left:1050px; top:665px;">기상 관측</div>
+
+  <!-- 글자 -->
+  <div class="copy">
+    <div class="eyebrow">
+      <span class="mark">AX</span>
+      <span class="eyebrow-text">AX거점 · <b>기업·민간 연구자</b> 데이터 활용 지원</span>
+    </div>
+    <h1>밀매치</h1>
+    <div class="en mono">MILITARY<span class="plus">＋</span>MATCH</div>
+    <div class="rule"></div>
+    <p class="tagline">연구 목적 기반<br><em>군 데이터 카탈로그</em><br>AI 추천 서비스</p>
+    <div class="steps">
+      <span class="step"><i>01</i>연구 목적 입력</span><span class="arrow">›</span>
+      <span class="step"><i>02</i>카탈로그 매칭</span><span class="arrow">›</span>
+      <span class="step"><i>03</i>근거·활용 방법</span>
+    </div>
+  </div>
+
+  <div class="hud tl mono"><span class="dot"></span>MIL-MATCH // CATALOG RECOMMENDER</div>
+  <div class="hud tr mono">SYS.READY · v1.0</div>
+  <div class="hud bl"><span class="demo">시연용 가상 카탈로그</span></div>
+  <div class="hud br mono">GRID 37°N 127°E</div>
+</div>
+</body>
+</html>
