@@ -164,14 +164,16 @@ class Excel(unittest.TestCase):
 
     def test_size_column(self):
         path = self.p("size.xlsx")
-        save(path, [["ID", "자료명", "분야", "공개범위", "파일 크기", "상태"],
-                    ["Z-1", "가", "차량", "공개", "약 2GB", "검수완료"],
-                    ["Z-2", "나", "차량", "공개", "1500", "검수완료"],
-                    ["Z-3", "다", "차량", "공개", "", "검수완료"]])
+        save(path, [["ID", "자료명", "분야", "공개범위", "파일 크기", "파일 갯수", "상태"],
+                    ["Z-1", "가", "차량", "공개", "약 2GB", "12", "검수완료"],
+                    ["Z-2", "나", "차량", "공개", "1500", "약 3만 개", "검수완료"],
+                    ["Z-3", "다", "차량", "공개", "", "", "검수완료"]])
         p = parse_workbook(path)
         self.assertEqual([r["values"]["size"] for r in p["rows"]], ["약 2GB", "1500", None])
+        self.assertEqual([r["values"]["file_count"] for r in p["rows"]], ["12개", "약 3만 개", None])
         self.assertTrue(any("단위" in w and "1500" in w for w in p["warnings"]))
         self.assertIn("데이터 용량", sample_rows()[0])
+        self.assertIn("파일 개수", sample_rows()[0])
 
     def test_missing_required_header_is_fatal(self):
         path = self.p("nohdr.xlsx")

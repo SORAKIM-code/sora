@@ -2,6 +2,7 @@
 
 값이 None 이면 '미확인'으로 취급하며, 시스템은 이를 추정해 채우지 않는다.
 """
+import re
 
 # (key, 표시명, 영역, 형태)
 FIELD_SCHEMA = [
@@ -25,6 +26,7 @@ FIELD_SCHEMA = [
     ("preprocessed", "전처리 유무", "데이터 내용", "text"),
     ("preprocess_detail", "전처리 내용", "데이터 내용", "text"),
     ("size", "데이터 용량", "데이터 내용", "text"),
+    ("file_count", "파일 개수", "데이터 내용", "text"),
     ("analysis_unit", "분석 단위", "연구 적합성", "text"),
     ("label_available", "정답표시 유무", "연구 적합성", "text"),
     ("label_detail", "정답표시 내용", "연구 적합성", "text"),
@@ -91,7 +93,7 @@ SEARCH_FIELDS = [
 # 연구 판단에 중요해서, 비어 있으면 '부족한 정보'로 표시하는 항목
 IMPORTANT_FIELDS = [
     "analysis_target", "columns", "period_start", "period_end", "update_cycle",
-    "data_type", "structure", "preprocessed", "size", "analysis_unit", "label_available", "quality", "quality_status",
+    "data_type", "structure", "preprocessed", "size", "file_count", "analysis_unit", "label_available", "quality", "quality_status",
 ]
 
 # 역할별 권한. 서버의 모든 관리 API는 이 표로 검사한다.
@@ -123,6 +125,8 @@ def clean_values(raw):
         else:
             v = str(v).strip()
             out[key] = None if v in ("", "미확인", "-") else normalize_choice(key, v)
+            if key == "file_count" and out[key] and re.fullmatch(r"\d[\d,]*", out[key]):
+                out[key] += "개"  # 숫자만 적은 파일 개수에는 단위만 붙인다
     return out
 
 
