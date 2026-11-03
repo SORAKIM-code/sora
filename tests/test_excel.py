@@ -160,7 +160,7 @@ class Excel(unittest.TestCase):
         c = next(c for c in r["candidates"] if c["catalog_id"] == "CAT-MED-002")
         self.assertEqual(c["metadata"]["preprocess_detail"], "비식별화 후 집계")
         self.assertFalse(any(x["field"] == "preprocessed" for x in c["explanation"]["checks"]))
-        self.assertEqual(c["metadata"]["size"], "약 0.3MB (약 900건)")
+        self.assertEqual(c["metadata"]["size"], "약 0.3MB")
 
     def test_size_column(self):
         path = self.p("size.xlsx")
