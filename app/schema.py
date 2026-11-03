@@ -24,6 +24,7 @@ FIELD_SCHEMA = [
     ("structure", "데이터 구조", "데이터 내용", "text"),
     ("preprocessed", "전처리 유무", "데이터 내용", "text"),
     ("preprocess_detail", "전처리 내용", "데이터 내용", "text"),
+    ("size", "데이터 용량", "데이터 내용", "text"),
     ("analysis_unit", "분석 단위", "연구 적합성", "text"),
     ("label_available", "정답표시 유무", "연구 적합성", "text"),
     ("label_detail", "정답표시 내용", "연구 적합성", "text"),
@@ -90,7 +91,7 @@ SEARCH_FIELDS = [
 # 연구 판단에 중요해서, 비어 있으면 '부족한 정보'로 표시하는 항목
 IMPORTANT_FIELDS = [
     "analysis_target", "columns", "period_start", "period_end", "update_cycle",
-    "data_type", "structure", "preprocessed", "analysis_unit", "label_available", "quality", "quality_status",
+    "data_type", "structure", "preprocessed", "size", "analysis_unit", "label_available", "quality", "quality_status",
 ]
 
 # 역할별 권한. 서버의 모든 관리 API는 이 표로 검사한다.

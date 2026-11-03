@@ -42,6 +42,7 @@ HEADER_ALIASES = {
     "structure": ["데이터구조", "자료구조", "구조", "정형여부", "정형/비정형", "정형구분", "데이터형태"],
     "preprocessed": ["전처리유무", "전처리", "전처리여부", "정제여부", "가공여부"],
     "preprocess_detail": ["전처리내용", "전처리방법", "정제내용", "가공내용"],
+    "size": ["데이터용량", "용량", "파일크기", "파일용량", "크기", "데이터크기", "데이터규모", "규모"],
     "analysis_unit": ["분석단위"],
     "label_available": ["정답표시유무", "정답표시", "라벨유무", "레이블유무"],
     "label_detail": ["정답표시내용", "라벨내용", "레이블내용"],
@@ -70,6 +71,7 @@ GUIDE = {
     "structure": ("권장", "정형(표 형태) / 반정형(로그·JSON·서식 있는 기록) / 비정형(문서·사진·영상·자유 서술). 비우면 미확인", "정형"),
     "preprocessed": ("권장", "있음 / 없음 — 결측 보정·코드 통일·비식별화·집계 등 정제를 거쳤는지. 비우면 미확인", "있음"),
     "preprocess_detail": ("선택", "어떤 전처리를 했는지", "결측 보정, 비식별화 후 월별 집계"),
+    "size": ("권장", "파일 크기와 건수를 단위와 함께. 숫자만 적으면 단위를 알 수 없다고 알려 줌. 비우면 미확인", "약 120MB (약 85만 건)"),
     "period_start": ("선택", "YYYY-MM", "2018-01"),
     "period_end": ("선택", "YYYY-MM", "2025-12"),
     "last_checked": ("선택", "YYYY-MM-DD", "2026-09-30"),
@@ -179,6 +181,8 @@ def parse_workbook(path):
             if values.get(key) is not None and values[key] not in CHOICES[key]:
                 warnings.append(f"{where}: {FIELD_LABEL[key]} '{values[key][:20]}'는 {'/'.join(CHOICES[key])} 중 하나가 아니라 미확인으로 둡니다.")
                 values[key] = None
+        if values.get("size") and re.fullmatch(r"[\d.,]+", values["size"]):
+            warnings.append(f"{where}: 데이터 용량 '{values['size']}'에 단위(MB·GB·건 등)가 없습니다. 적힌 그대로 보여 줍니다.")
         if not values.get("roles"):
             values["roles"] = ["researcher"]
         if not values.get("source_doc"):
@@ -208,7 +212,7 @@ def write_workbook(path, catalogs):
         rows.append([c["id"], STATUS_KO.get(c["status"], "검수대기")] +
                     [value_text(c["values"].get(k)) for k, _, _, _ in FIELD_SCHEMA])
     widths = [14, 10] + [{"title": 26, "description": 48, "columns": 52, "keywords": 26, "procedure": 34,
-                          "department": 20, "analysis_target": 24, "preprocess_detail": 30}.get(k, 14)
+                          "department": 20, "analysis_target": 24, "preprocess_detail": 30, "size": 22}.get(k, 14)
                          for k, _, _, _ in FIELD_SCHEMA]
     required = {"id", "status"} | set(REQUIRED)
     styles = {(0, i): 3 for i, k in enumerate(keys) if k in required}
