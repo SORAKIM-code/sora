@@ -2,3 +2,7 @@
 var/
 __pycache__/
 *.pyc
+# 환경 변수(Supabase 키 등)는 저장소에 올리지 않는다. Vercel 에서는 프로젝트 설정의 Environment Variables 에 넣는다.
+.env
+.env.*
+!.env.example
