@@ -96,12 +96,14 @@ input:focus, select:focus, textarea:focus {
 textarea { resize: vertical; min-height: 84px; }
 textarea.mono, .mono { font-family: Consolas, "D2Coding", monospace; font-size: 13px; }
 
-button {
+button, a.button {
   padding: 8px 16px; border-radius: 10px; border: 1px solid var(--line-strong);
   background: var(--panel-2); color: var(--ink); cursor: pointer;
   transition: border-color .15s, background .15s, transform .05s;
 }
-button:hover { border-color: var(--accent); background: #1f2530; }
+a.button { display: inline-block; text-decoration: none; }
+button:hover, a.button:hover { border-color: var(--accent); background: #1f2530; }
+input[type="file"] { max-width: 260px; font-size: 13px; }
 button:active { transform: translateY(1px); }
 button.primary {
   background: linear-gradient(135deg, var(--accent), #6f8dff); border-color: transparent;

@@ -2,11 +2,16 @@
 
 웹 계층(server.py)은 이 클래스의 메서드만 부르고, 모든 권한 검사는 여기서 서버 측으로 한다.
 """
+import base64
+import binascii
 import copy
 import hashlib
 import json
 import os
 import secrets
+import shutil
+import tempfile
+import threading
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
 
@@ -26,6 +31,14 @@ from .textutil import injection_flags, normalize
 ABSTAIN_MESSAGE = ("열람 권한 범위 안에서 연구 목적에 맞는 카탈로그를 확인할 수 없습니다. "
                    "연구 목적을 더 구체적으로 적어 다시 시도하거나 거점 담당자와 상담하세요.")
 SCORE_NOTICE = "관련도는 연구 목적과 카탈로그 기재 내용의 일치 정도이며, 연구 성공이나 승인 가능성을 뜻하지 않습니다."
+XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+MAX_EXCEL_BYTES = 5 * 1024 * 1024
+
+
+class FileResult:
+    """JSON 대신 파일로 내려보낼 응답."""
+    def __init__(self, name, data, ctype):
+        self.name, self.data, self.ctype = name, data, ctype
 
 
 class ServiceError(Exception):
@@ -60,7 +73,8 @@ class Service:
         self.explainer = explainer_mod.RuleExplainer()
         self._index_cache = OrderedDict()
         self._result_cache = OrderedDict()
-        excel = self.cfg.get("catalog_excel")
+        self._excel_lock = threading.Lock()
+        excel =self.cfg.get("catalog_excel")
         self.excel_path = os.path.join(base_dir, excel) if excel else None
         if not self.db.one("SELECT id FROM users LIMIT 1"):
             self._seed(data_dir, with_catalogs=not self._excel_exists())
@@ -89,7 +103,7 @@ class Service:
     def _excel_exists(self):
         return bool(self.excel_path) and os.path.isfile(self.excel_path)
 
-    def sync_excel_if_changed(self):
+    def sync_excel_if_changed(self, by="excel-import"):
         """설정된 엑셀 파일이 마지막 반영 때와 다르면 다시 반영한다. 읽기에 실패하면 기존 카탈로그를 그대로 쓴다."""
         with open(self.excel_path, "rb") as f:
             digest = hashlib.sha256(f.read()).hexdigest()
@@ -97,7 +111,7 @@ class Service:
         if last.get("sha256") == digest:
             return {"status": "unchanged", **last}
         try:
-            result = self.sync_excel(self.excel_path, by="excel-import")
+            result = self.sync_excel(self.excel_path, by=by)
         except (ServiceError, XlsxError) as e:
             return {"status": "failed", "error": getattr(e, "message", str(e))}
         result["sha256"] = digest
@@ -180,6 +194,129 @@ class Service:
                 for cid, v in latest.items()]
         write_workbook(path, rows)
         return len(rows)
+
+    def excel_preview(self, parsed):
+        """sync_excel 을 실제로 하지 않고, 반영하면 무엇이 바뀌는지 같은 규칙으로 센다."""
+        counts = {"added": 0, "updated": 0, "unchanged": 0, "draft": 0, "withdrawn": 0, "skipped": len(parsed["errors"])}
+        lists = {"added": [], "updated": [], "withdrawn": [], "to_draft": []}
+        in_excel = set()
+        for row in parsed["rows"]:
+            cid = row["id"]
+            in_excel.add(cid)
+            vs = self.store.versions(cid)
+            approved = next((v for v in vs if v["status"] == "approved"), None)
+            latest = vs[-1] if vs else None
+            if row["status"] == "withdrawn":
+                if approved:
+                    counts["withdrawn"] += 1
+                    lists["withdrawn"].append(cid)
+                continue
+            if approved and approved["values"] == row["values"] and row["status"] == "approved" \
+                    and not (latest and latest["status"] == "draft"):
+                counts["unchanged"] += 1
+            elif row["status"] == "approved":
+                key = "updated" if approved else "added"
+                counts[key] += 1
+                lists[key].append(cid)
+            else:
+                counts["draft"] += 1
+                if approved:
+                    lists["to_draft"].append(cid)
+        for c in self.store.approved():
+            if c["id"] not in in_excel:
+                counts["withdrawn"] += 1
+                lists["withdrawn"].append(c["id"])
+        return counts, lists
+
+    # ── 관리자: 카탈로그 엑셀 내려받기·올리기 ──
+    def excel_download(self, sess):
+        """지금 검색에 쓰는 엑셀 파일을 그대로 내준다(파일이 없으면 현재 저장소에서 만든다)."""
+        self.require(sess, "catalog_excel")
+        name = f"catalogs-{self._clock().strftime('%Y%m%d')}.xlsx"
+        if self._excel_exists():
+            with open(self.excel_path, "rb") as f:
+                data = f.read()
+        else:
+            fd, tmp = tempfile.mkstemp(suffix=".xlsx")
+            os.close(fd)
+            try:
+                self.export_excel(tmp)
+                with open(tmp, "rb") as f:
+                    data = f.read()
+            finally:
+                os.remove(tmp)
+        self.audit.write("excel_download", sess["user"]["id"], outcome=name)
+        return FileResult(name, data, XLSX_TYPE)
+
+    def _upload_to_temp(self, body):
+        try:
+            data = base64.b64decode(body.get("data") or "", validate=True)
+        except (binascii.Error, ValueError, TypeError):
+            raise ServiceError(400, "파일 내용을 읽지 못했습니다.")
+        if not data:
+            raise ServiceError(400, "엑셀 파일을 선택하세요.")
+        if len(data) > MAX_EXCEL_BYTES:
+            raise ServiceError(413, f"엑셀 파일은 {MAX_EXCEL_BYTES // (1024 * 1024)}MB 이하만 올릴 수 있습니다.")
+        if not data.startswith(b"PK"):
+            raise ServiceError(400, ".xlsx 파일이 아닙니다. 옛 형식(.xls)이면 엑셀에서 .xlsx 로 다시 저장하세요.")
+        fd, tmp = tempfile.mkstemp(suffix=".xlsx")
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+        return tmp
+
+    def _parse_upload(self, tmp, name):
+        try:
+            parsed = parse_workbook(tmp)
+        except XlsxError as e:
+            raise ServiceError(400, f"엑셀 파일을 읽지 못했습니다: {e}")
+        # 임시 파일 이름 대신 실제로 쓰일 파일 이름으로 근거 위치를 적는다.
+        for r in parsed["rows"]:
+            r["origin"]["file"] = name
+        return parsed
+
+    def excel_check(self, sess, body):
+        """올린 엑셀을 반영하지 않고 검사만 한다."""
+        self.require(sess, "catalog_excel")
+        tmp = self._upload_to_temp(body)
+        try:
+            parsed = self._parse_upload(tmp, os.path.basename(self.excel_path or "catalogs.xlsx"))
+        finally:
+            os.remove(tmp)
+        if parsed["fatal"]:
+            return {"ok": False, "fatal": parsed["fatal"], "errors": parsed["errors"], "warnings": parsed["warnings"]}
+        counts, lists = self.excel_preview(parsed)
+        return {"ok": True, "fatal": None, "rows": len(parsed["rows"]), "counts": counts, "lists": lists,
+                "errors": parsed["errors"], "warnings": parsed["warnings"]}
+
+    def excel_upload(self, sess, body):
+        """올린 엑셀로 카탈로그 목록 파일을 바꾸고 바로 반영한다. 이전 파일은 var/excel_backups 에 남긴다."""
+        self.require(sess, "catalog_excel")
+        if not self.excel_path:
+            raise ServiceError(409, "config.json 에 catalog_excel 이 설정되어 있지 않습니다.")
+        tmp = self._upload_to_temp(body)
+        try:
+            with self._excel_lock:
+                parsed = self._parse_upload(tmp, os.path.basename(self.excel_path))
+                if parsed["fatal"]:
+                    raise ServiceError(400, parsed["fatal"])
+                backup = None
+                if self._excel_exists():
+                    bdir = os.path.join(self.base_dir, "var", "excel_backups")
+                    os.makedirs(bdir, exist_ok=True)
+                    backup = os.path.join(bdir, f"catalogs-{self._clock().strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}.xlsx")
+                    shutil.copy2(self.excel_path, backup)
+                os.makedirs(os.path.dirname(self.excel_path), exist_ok=True)
+                shutil.copyfile(tmp, self.excel_path + ".uploading")
+                os.replace(self.excel_path + ".uploading", self.excel_path)
+                result = self.sync_excel_if_changed(by=sess["user"]["id"])
+        finally:
+            os.remove(tmp)
+        if result["status"] == "failed":
+            raise ServiceError(400, result["error"])
+        self.last_import = result
+        return {"status": result["status"], "counts": result.get("counts"), "errors": result.get("errors", []),
+                "warnings": result.get("warnings", []), "backup": os.path.basename(backup) if backup else None,
+                "catalog_count": len(self.store.approved())}
 
     def _seed(self, data_dir, with_catalogs=True):
         for u in _load_json(os.path.join(data_dir, "users.json"))["users"]:

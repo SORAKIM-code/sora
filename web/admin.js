@@ -470,12 +470,85 @@ async function viewAdminCatalogs() {
   mount(
     h("h1", {}, "카탈로그 관리"),
     h("p", { class: "lead" }, "등록 · 검수 · 버전 관리 · 철회. 검수되지 않은 메타데이터는 검색에 나오지 않고, 알 수 없는 값은 '미확인'으로 둡니다."),
+    state.me.capabilities.includes("catalog_excel") ? excelPanel() : null,
     canEdit ? extractPanel() : null,
     h("div", { class: "panel" }, tabs, tableBox),
     h("div", { class: "panel small" }, h("h3", {}, "모델·인덱스 버전"),
       h("div", { class: "mono" }, Object.entries(status.model).map(([k, v]) => `${k}=${v}`).join(" · ")),
       status.unapproved_glossary.length ? h("div", { class: "muted" }, "미승인 용어(검색에 쓰지 않음): " + status.unapproved_glossary.join(", ")) : null),
   );
+}
+
+// 카탈로그 엑셀: 지금 쓰는 파일을 받아 행을 추가·수정한 뒤 다시 올린다. 올리기 전에 검사 결과를 보여 준다.
+function excelPanel() {
+  const file = h("input", { type: "file", accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const out = h("div");
+  const applyBtn = h("button", { class: "primary", disabled: true }, "이 파일로 반영");
+  let data = null;
+
+  const readFile = (f) => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",", 2)[1] || "");
+    r.onerror = () => reject(new Error("파일을 읽지 못했습니다."));
+    r.readAsDataURL(f);
+  });
+  const ids = (label, list, cls) => list && list.length
+    ? h("div", { class: "small" }, h("strong", {}, `${label} ${list.length}건: `), list.map((x) => h("span", { class: "chip " + (cls || "") }, x)))
+    : null;
+  const msgs = (r) => [
+    r.errors && r.errors.length ? h("div", { class: "notice err small" }, h("strong", {}, "건너뛰는 행"), r.errors.map((x) => h("div", {}, x))) : null,
+    r.warnings && r.warnings.length ? h("details", { class: "small" }, h("summary", {}, `주의 사항 ${r.warnings.length}건`), r.warnings.map((x) => h("div", {}, x))) : null,
+  ];
+  const countLine = (c) => `새로 추가 ${c.added} · 내용 변경 ${c.updated} · 그대로 ${c.unchanged} · 검수대기 ${c.draft} · 철회 ${c.withdrawn} · 건너뜀 ${c.skipped}`;
+
+  file.addEventListener("change", async () => {
+    data = null;
+    applyBtn.disabled = true;
+    out.replaceChildren();
+    const f = file.files[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { out.replaceChildren(errorBox(new Error("엑셀 파일은 5MB 이하만 올릴 수 있습니다."))); return; }
+    out.replaceChildren(h("p", { class: "small muted" }, "검사하는 중…"));
+    try {
+      const b64 = await readFile(f);
+      const r = await api("POST", "/api/admin/excel/check", { data: b64 });
+      if (!r.ok) {
+        out.replaceChildren(h("div", {}, h("div", { class: "notice err" }, h("strong", {}, "반영할 수 없는 파일입니다. "), r.fatal), msgs(r)));
+        return;
+      }
+      data = b64;
+      applyBtn.disabled = false;
+      out.replaceChildren(h("div", {},
+        h("div", { class: "notice small" }, h("strong", {}, `검사 결과 (${r.rows}행) `), countLine(r.counts)),
+        ids("새로 추가", r.lists.added, "ok"), ids("내용 변경", r.lists.updated, "part"),
+        ids("검색에서 빠짐(철회)", r.lists.withdrawn, "no"), ids("검수대기로 바뀜(검색에서 빠짐)", r.lists.to_draft, "no"),
+        r.lists.withdrawn.length ? h("div", { class: "notice warn small" }, "엑셀에 없는 카탈로그는 철회됩니다. 받은 파일에 행을 추가해서 올리세요.") : null,
+        msgs(r)));
+    } catch (e) { out.replaceChildren(errorBox(e)); }
+  });
+
+  applyBtn.addEventListener("click", async () => {
+    if (!data) return;
+    applyBtn.disabled = true;
+    try {
+      const r = await api("POST", "/api/admin/excel/upload", { data });
+      data = null;
+      file.value = "";
+      toast(r.status === "unchanged" ? "지금 쓰는 파일과 같아 바뀐 것이 없습니다." : `반영했습니다. 검색에 나오는 카탈로그 ${r.catalog_count}건.`);
+      viewAdminCatalogs();
+    } catch (e) { out.append(errorBox(e)); applyBtn.disabled = false; }
+  });
+
+  return h("div", { class: "panel" }, h("h2", {}, "카탈로그 엑셀"),
+    h("p", { class: "small muted" }, "검색에 쓰는 카탈로그 목록 파일입니다. 내려받아 행을 추가·수정한 뒤 올리면 바로 검색에 반영됩니다. ",
+      "한 행이 카탈로그 하나이고, 상태가 '검수완료'인 행만 검색에 나옵니다. 작성 방법은 파일의 '작성 안내' 시트를 보세요."),
+    h("div", { class: "row" },
+      h("a", { class: "button", href: "/api/admin/excel/download", download: "" }, "지금 쓰는 엑셀 내려받기"),
+      h("span", { class: "spacer" }),
+      h("label", { class: "row small" }, "고친 엑셀 올리기", file),
+      applyBtn),
+    out,
+    h("p", { class: "small muted" }, "반영하기 전 파일은 서버의 var/excel_backups 폴더에 남습니다."));
 }
 
 function extractPanel() {

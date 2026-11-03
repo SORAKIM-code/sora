@@ -11,7 +11,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
-from .service import Service, ServiceError
+from .service import FileResult, Service, ServiceError
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(BASE_DIR, "web")
@@ -19,13 +19,14 @@ MEDIA_DIR = os.path.join(BASE_DIR, "data", "images")
 MEDIA_TYPES = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp", "gif": "image/gif"}
 MEDIA_NAME = re.compile(r"[0-9A-Za-z가-힣_\-. ]{1,100}\.(png|jpg|jpeg|webp|gif)", re.IGNORECASE)
 MAX_BODY = 64 * 1024
+MAX_UPLOAD_BODY = 8 * 1024 * 1024  # 엑셀 5MB 를 base64 로 담은 JSON
 
 ROUTES = []
 
 
-def route(method, pattern, auth=True):
+def route(method, pattern, auth=True, max_body=MAX_BODY):
     def deco(fn):
-        ROUTES.append((method, re.compile("^" + pattern + "$"), fn, auth))
+        ROUTES.append((method, re.compile("^" + pattern + "$"), fn, auth, max_body))
         return fn
     return deco
 
@@ -134,6 +135,21 @@ def r_admin_withdraw(svc, h, sess, body, q, cid):
     return svc.withdraw_catalog(sess, cid, body.get("reason"))
 
 
+@route("GET", "/api/admin/excel/download")
+def r_excel_download(svc, h, sess, body, q):
+    return svc.excel_download(sess)
+
+
+@route("POST", "/api/admin/excel/check", max_body=MAX_UPLOAD_BODY)
+def r_excel_check(svc, h, sess, body, q):
+    return svc.excel_check(sess, body)
+
+
+@route("POST", "/api/admin/excel/upload", max_body=MAX_UPLOAD_BODY)
+def r_excel_upload(svc, h, sess, body, q):
+    return svc.excel_upload(sess, body)
+
+
 # ── 운영자: 권한·로그·신고 ──
 @route("GET", "/api/admin/users")
 def r_users(svc, h, sess, body, q):
@@ -202,6 +218,13 @@ def make_handler(svc):
             self.end_headers()
             self.wfile.write(data)
 
+        def _file(self, res):
+            self._headers(200, res.ctype, len(res.data))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{res.name}"')
+            self.end_headers()
+            self.wfile.write(res.data)
+
         def _media(self, path):
             """카탈로그 대표 이미지: data/images 안의 그림 파일만, 정해진 확장자만 내준다."""
             name = unquote(path[len("/media/"):])
@@ -243,7 +266,7 @@ def make_handler(svc):
                 return self._media(url.path)
             if method == "GET" and not url.path.startswith("/api/"):
                 return self._static(url.path)
-            for m, rx, fn, auth in ROUTES:
+            for m, rx, fn, auth, max_body in ROUTES:
                 if m != method:
                     continue
                 match = rx.match(url.path)
@@ -256,7 +279,7 @@ def make_handler(svc):
                         if not (self.headers.get("Content-Type") or "").startswith("application/json"):
                             raise ServiceError(415, "application/json 요청만 받습니다.")
                         n = int(self.headers.get("Content-Length") or 0)
-                        if n > MAX_BODY:
+                        if n > max_body:
                             raise ServiceError(413, "요청이 너무 큽니다.")
                         raw = self.rfile.read(n) if n else b"{}"
                         try:
@@ -270,6 +293,8 @@ def make_handler(svc):
                         c = SimpleCookie(self.headers.get("Cookie") or "")
                         sess = svc.session(c["sid"].value if "sid" in c else None)
                     result = fn(svc, self, sess, body, parse_qs(url.query), **match.groupdict())
+                    if isinstance(result, FileResult):
+                        return self._file(result)
                     return self._json(200, result)
                 except ServiceError as e:
                     return self._json(e.status, {"error": e.message})

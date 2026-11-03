@@ -71,7 +71,7 @@ CAPABILITIES = {
     "data_owner": {"catalog_view", "catalog_edit", "catalog_review"},
     "operator": {"catalog_view", "catalog_withdraw", "grant_manage", "log_view", "report_manage"},
     "admin": {"catalog_view", "catalog_edit", "catalog_review", "catalog_withdraw",
-              "grant_manage", "log_view", "log_raw", "report_manage", "purge"},
+              "grant_manage", "log_view", "log_raw", "report_manage", "purge", "catalog_excel"},
 }
 
 
