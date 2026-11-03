@@ -187,6 +187,12 @@ class RuleExplainer:
         for k in v.get("join_keys") or []:
             out.append(item("check", f"결합 식별자 '{_clip(k)}'의 제공 가능 범위와 다른 자료와의 대응 관계를 확인해 주세요.",
                             "join_keys", k, confirmer=owner))
+        if v.get("preprocessed") == "없음":
+            out.append(item("check", "전처리 유무가 '없음'으로 등록되어 있습니다. 결측·이상값 정제나 비식별화를 연구자가 직접 해야 하는지 확인해 주세요.",
+                            "preprocessed", v["preprocessed"], confirmer=owner))
+        if v.get("structure") in ("반정형", "비정형"):
+            out.append(item("check", f"데이터 구조가 '{v['structure']}'으로 등록되어 있습니다. 제공 형식(파일 형태·분량)과 분석 전 변환 방법을 확인해 주세요.",
+                            "structure", v["structure"], confirmer=owner))
         if v.get("quality_status") is None and v.get("quality") is not None:
             out.append(item("check", f"품질 정보('{_clip(v['quality'])}')의 확인 상태가 등록되어 있지 않습니다.",
                             "quality", v["quality"], confirmer=owner))

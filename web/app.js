@@ -160,8 +160,14 @@ function card(c, rank) {
       h("div", { class: "cand-sec full" }, h("div", { class: "notice err" }, c.explanation_error), metaTable(v, c.sources)));
   }
 
+  const pre = v.preprocessed ? (v.preprocessed + (v.preprocess_detail ? ` (${v.preprocess_detail})` : "")) : null;
   const body = h("div", { class: "cand-body" },
     section("full", "포함된 주요 데이터 항목",
+      h("div", { class: "data-shape" },
+        h("span", { class: "shape-item" }, h("span", { class: "muted" }, "데이터 구조 "), v.structure ? h("strong", {}, v.structure) : unknown(),
+          srcNote(c.availability.origin, "structure")),
+        h("span", { class: "shape-item" }, h("span", { class: "muted" }, "전처리 "), pre ? h("strong", {}, pre) : unknown(),
+          srcNote(c.availability.origin, "preprocessed"))),
       e.columns.length ? h("ul", { class: "cols" }, e.columns.map((x) => h("li", {}, x.text))) : h("p", {}, "등록된 데이터 항목이 없습니다 (미확인).")),
     section("sec-fact left", "연구 목적에 적합한 이유",
       h("ul", {}, e.reasons.map((x) => h("li", {}, x.text, srcNote(c.availability.origin, x.field, x.source_line))))),

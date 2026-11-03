@@ -130,6 +130,37 @@ class Excel(unittest.TestCase):
         self.assertEqual(p["rows"][0]["origin"]["row"], 3)
         self.assertTrue(any("비고" in w for w in p["warnings"]))
 
+    def test_structure_and_preprocessing_columns(self):
+        path = self.p("shape.xlsx")
+        save(path, [
+            ["ID", "자료명", "분야", "공개범위", "정형/비정형", "전처리 여부", "전처리 방법", "상태"],
+            ["S-1", "가", "차량", "공개", "정형 데이터", "O", "결측 보정", "검수완료"],
+            ["S-2", "나", "차량", "공개", "비정형", "무", "", "검수완료"],
+            ["S-3", "다", "차량", "공개", "표", "몰라", "", "검수완료"],
+            ["S-4", "라", "차량", "공개", "", "", "", "검수완료"],
+        ])
+        p = parse_workbook(path)
+        got = {r["id"]: (r["values"]["structure"], r["values"]["preprocessed"], r["values"]["preprocess_detail"])
+               for r in p["rows"]}
+        self.assertEqual(got, {"S-1": ("정형", "있음", "결측 보정"), "S-2": ("비정형", "없음", None),
+                               "S-3": (None, None, None), "S-4": (None, None, None)})
+        self.assertEqual(sum("미확인으로 둡니다" in w for w in p["warnings"]), 2)
+        # 견본 엑셀에 새 열과 드롭다운이 들어 있다
+        hdr = sample_rows()[0]
+        for col in ("데이터 구조", "전처리 유무", "전처리 내용"):
+            self.assertIn(col, hdr)
+
+    def test_structure_and_preprocessing_on_card(self):
+        svc = make_service()
+        r = svc.recommend(svc.demo_session(), {"query": "차량 정비 이력을 활용해서 고장 예측 AI를 개발하고 싶습니다."})
+        c = r["candidates"][0]
+        self.assertEqual((c["metadata"]["structure"], c["metadata"]["preprocessed"]), ("정형", "없음"))
+        self.assertTrue(any(x["field"] == "preprocessed" for x in c["explanation"]["checks"]))
+        r = svc.recommend(svc.demo_session(), {"query": "온열질환 발생 통계", "skip_clarify": True})
+        c = next(c for c in r["candidates"] if c["catalog_id"] == "CAT-MED-002")
+        self.assertEqual(c["metadata"]["preprocess_detail"], "비식별화 후 집계")
+        self.assertFalse(any(x["field"] == "preprocessed" for x in c["explanation"]["checks"]))
+
     def test_missing_required_header_is_fatal(self):
         path = self.p("nohdr.xlsx")
         save(path, [["카탈로그 ID", "제목"], ["A", "B"]])

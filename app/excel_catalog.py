@@ -7,7 +7,7 @@ import os
 import re
 from datetime import date, timedelta
 
-from .schema import ACCESS_LEVELS, FIELD_SCHEMA, clean_values, value_text
+from .schema import ACCESS_LEVELS, CHOICES, FIELD_LABEL, FIELD_SCHEMA, clean_values, value_text
 from .xlsx import col_letter, read_xlsx, write_xlsx
 
 SHEET = "카탈로그"
@@ -39,6 +39,9 @@ HEADER_ALIASES = {
     "period_end": ["수집기간(종료)", "수집종료", "종료", "수집기간종료", "종료일"],
     "update_cycle": ["갱신주기", "주기", "업데이트주기"],
     "data_type": ["자료유형", "데이터유형", "유형"],
+    "structure": ["데이터구조", "자료구조", "구조", "정형여부", "정형/비정형", "정형구분", "데이터형태"],
+    "preprocessed": ["전처리유무", "전처리", "전처리여부", "정제여부", "가공여부"],
+    "preprocess_detail": ["전처리내용", "전처리방법", "정제내용", "가공내용"],
     "analysis_unit": ["분석단위"],
     "label_available": ["정답표시유무", "정답표시", "라벨유무", "레이블유무"],
     "label_detail": ["정답표시내용", "라벨내용", "레이블내용"],
@@ -64,6 +67,9 @@ GUIDE = {
     "roles": ("선택", "비우면 researcher", "researcher"),
     "image": ("선택", "data/images 폴더에 넣은 그림 파일 이름(png·jpg·webp·gif). 비우면 분야·자료 유형으로 그림을 자동 생성", "veh001.png"),
     "label_available": ("선택", "있음 / 없음. 비우면 미확인", "있음"),
+    "structure": ("권장", "정형(표 형태) / 반정형(로그·JSON·서식 있는 기록) / 비정형(문서·사진·영상·자유 서술). 비우면 미확인", "정형"),
+    "preprocessed": ("권장", "있음 / 없음 — 결측 보정·코드 통일·비식별화·집계 등 정제를 거쳤는지. 비우면 미확인", "있음"),
+    "preprocess_detail": ("선택", "어떤 전처리를 했는지", "결측 보정, 비식별화 후 월별 집계"),
     "period_start": ("선택", "YYYY-MM", "2018-01"),
     "period_end": ("선택", "YYYY-MM", "2025-12"),
     "last_checked": ("선택", "YYYY-MM-DD", "2026-09-30"),
@@ -169,6 +175,10 @@ def parse_workbook(path):
                 v = _excel_date(v, DATE_KEYS[key])
             raw[key] = _split_list(key, v) if kind == "list" else v
         values = clean_values(raw)
+        for key in ("structure", "preprocessed"):
+            if values.get(key) is not None and values[key] not in CHOICES[key]:
+                warnings.append(f"{where}: {FIELD_LABEL[key]} '{values[key][:20]}'는 {'/'.join(CHOICES[key])} 중 하나가 아니라 미확인으로 둡니다.")
+                values[key] = None
         if not values.get("roles"):
             values["roles"] = ["researcher"]
         if not values.get("source_doc"):
@@ -198,12 +208,13 @@ def write_workbook(path, catalogs):
         rows.append([c["id"], STATUS_KO.get(c["status"], "검수대기")] +
                     [value_text(c["values"].get(k)) for k, _, _, _ in FIELD_SCHEMA])
     widths = [14, 10] + [{"title": 26, "description": 48, "columns": 52, "keywords": 26, "procedure": 34,
-                          "department": 20, "analysis_target": 24}.get(k, 14) for k, _, _, _ in FIELD_SCHEMA]
+                          "department": 20, "analysis_target": 24, "preprocess_detail": 30}.get(k, 14)
+                         for k, _, _, _ in FIELD_SCHEMA]
     required = {"id", "status"} | set(REQUIRED)
     styles = {(0, i): 3 for i, k in enumerate(keys) if k in required}
     status_col = keys.index("status")
     level_col = keys.index("access_level")
-    label_col = keys.index("label_available")
+    choice_cols = [(keys.index(k), opts) for k, opts in CHOICES.items()]
     guide = [["열 이름", "구분", "설명", "예시"]]
     for k, label in zip(keys, hdr):
         g = GUIDE.get(k, ("선택", "비우면 '미확인'으로 표시하고 추정하지 않음", ""))
@@ -213,6 +224,6 @@ def write_workbook(path, catalogs):
               ["안내", "", "다른 열 이름도 알아봅니다(예: 카탈로그명·자료명 → 제목, 키워드·해시태그 → 주제어).", ""]]
     write_xlsx(path, [
         {"name": SHEET, "rows": rows, "widths": widths, "freeze": True, "styles": styles,
-         "validations": [(status_col, list(STATUS)), (level_col, ACCESS_LEVELS), (label_col, ["있음", "없음"])]},
+         "validations": [(status_col, list(STATUS)), (level_col, ACCESS_LEVELS)] + choice_cols},
         {"name": GUIDE_SHEET, "rows": guide, "widths": [18, 8, 80, 30], "freeze": True},
     ])
