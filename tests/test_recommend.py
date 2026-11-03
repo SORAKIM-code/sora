@@ -18,6 +18,11 @@ class Recommend(unittest.TestCase):
         self.assertEqual(g.domains_in("위성영상 판독 모델"), ["정보"])
         self.assertEqual(g.domains_in("연구 정보를 정리하고 인사이트를 얻는다"), [])  # 흔한 말로 분야를 잡지 않는다
         self.assertIn("군수", g.domains_in("창고 입출고 기록"))
+        # 낱말 단위로 찾는다: 다른 낱말 속 두 글자 용어로 분야를 잡지 않는다
+        self.assertEqual(g.domains_in("위성영상에서 토지피복을 분류하는 딥러닝 모델"), ["정보"])
+        self.assertIn("보급", g.domains_in("피복 보급 수요"))
+        self.assertEqual(g.domains_in("차량정비 기록"), ["차량"])
+        self.assertEqual(g.domains_in("무선통신장비 고장"), ["통신"])
         self.assertEqual(g.related(["보급"]), {"군수"})
         self.assertEqual(g.related(["교육훈련"]), {"인사", "작전"})
         rec = self.svc.recommender

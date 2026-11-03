@@ -1,6 +1,6 @@
 # 평가 보고서 (자동 생성)
 
-- 실행 시각: 2026-11-03T15:44:56
+- 실행 시각: 2026-11-03T16:49:34
 - 범위: all (24건) · 후보 수 k=5
 - 모델·인덱스 버전: `{"index": "hybrid-bm25-charngram-v1", "semantic": "char-ngram-tfidf-v1", "extractor": "rule-extractor-v1", "explainer": "rule-template-v2", "glossary": "glossary-2026-11-03-v2", "clarify_rules": "clarify-rules-v1", "weights": "weights-2026-11-03-v1", "catalog_generation": 42}`
 
@@ -17,7 +17,7 @@
 | 권한 밖 후보 노출 | 0건 | - |
 | 근거 일치도(사실 항목 ↔ 원문 행, 자동) | 100.0% (296/296) | - |
 | 추가 질문 발생 | 1건 | - |
-| 처리시간 중앙값(인메모리, 단일 사용자) | 3.4 ms | - |
+| 처리시간 중앙값(인메모리, 단일 사용자) | 3.6 ms | - |
 
 ## 시나리오별
 

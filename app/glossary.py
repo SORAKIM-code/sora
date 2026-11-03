@@ -1,5 +1,5 @@
 """군 용어사전. 승인된(approved) 대응어만 검색 확장에 쓴다."""
-from .textutil import normalize, tokens
+from .textutil import tokens
 
 
 class Glossary:
@@ -47,12 +47,29 @@ class Glossary:
         return out - set(domains)
 
     def domains_in(self, text):
-        norm = normalize(text)
+        qtoks = tokens(text)
         found = []
         for g in self.groups:
             dom = g.get("domain")
             if not dom or dom in found:
                 continue
-            if any(normalize(t) in norm for t in [g["canonical"]] + g.get("synonyms", [])):
+            if any(_term_in(t, qtoks) for t in [g["canonical"]] + g.get("synonyms", [])):
                 found.append(dom)
         return found
+
+
+def _term_in(term, qtoks):
+    """용어가 질의에 낱말로 들어 있는가.
+
+    질의 낱말이 용어와 같거나 용어로 시작하면 일치로 본다(차량정비 → 차량).
+    낱말 끝에 붙은 경우는 세 글자 이상 용어만 인정한다(무선통신장비 → 통신장비).
+    두 글자 용어가 다른 낱말 속에 들어 있는 경우는 일치로 보지 않는다(토지피복 ≠ 피복).
+    """
+    tt = tokens(term)
+    if not tt:
+        return False
+    if len(tt) > 1:
+        n = len(tt)
+        return any(qtoks[i:i + n] == tt for i in range(len(qtoks) - n + 1))
+    t = tt[0]
+    return any(q == t or q.startswith(t) or (len(t) >= 3 and q.endswith(t)) for q in qtoks)
