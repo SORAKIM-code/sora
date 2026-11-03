@@ -1,0 +1,27 @@
+{
+  "version": "glossary-2026-11-03-v1",
+  "note": "시제품용 가상 용어사전. approved=true 인 대응어만 검색에 쓰인다.",
+  "groups": [
+    {"canonical": "차량", "synonyms": ["군용차", "군용차량", "전술차량", "트럭", "수송차량", "자동차"], "domain": "차량", "approved": true},
+    {"canonical": "항공기", "synonyms": ["헬기", "헬리콥터", "회전익", "고정익", "비행기", "기체"], "domain": "항공기", "approved": true},
+    {"canonical": "함정", "synonyms": ["선박", "함선", "군함", "추진기관"], "domain": "함정", "approved": true},
+    {"canonical": "통신", "synonyms": ["통신장비", "무전기", "통신기", "전파"], "domain": "통신", "approved": true},
+    {"canonical": "보급", "synonyms": ["군수", "물자", "재고", "수요", "조달", "수리부속", "피복"], "domain": "보급", "approved": true},
+    {"canonical": "에너지", "synonyms": ["전력", "전기", "연료", "유류", "태양광", "발전량"], "domain": "에너지", "approved": true},
+    {"canonical": "시설", "synonyms": ["건물", "막사", "병영", "냉난방", "시설물"], "domain": "시설", "approved": true},
+    {"canonical": "기상", "synonyms": ["날씨", "기후", "기온", "강수", "일사량", "풍속", "외기"], "domain": "기상", "approved": true},
+    {"canonical": "교육훈련", "synonyms": ["훈련", "교육과정", "사격", "체력검정"], "domain": "교육훈련", "approved": true},
+    {"canonical": "급식", "synonyms": ["식단", "식자재", "잔반", "배식", "음식물", "1종"], "domain": "급식", "approved": true},
+    {"canonical": "수리부속", "synonyms": ["9종"], "approved": true},
+    {"canonical": "유류", "synonyms": ["3종"], "approved": true},
+    {"canonical": "피복", "synonyms": ["2종"], "approved": true},
+    {"canonical": "보건", "synonyms": ["건강", "질환", "온열질환", "질병", "부상", "의무"], "domain": "보건", "approved": true},
+    {"canonical": "고장", "synonyms": ["결함", "불량", "장애", "failure"], "approved": true},
+    {"canonical": "정비", "synonyms": ["수리", "유지보수", "보수", "maintenance"], "approved": true},
+    {"canonical": "예측", "synonyms": ["예지", "예보", "forecast"], "approved": true},
+    {"canonical": "센서", "synonyms": ["계측", "측정값", "진동", "sensor"], "approved": true},
+    {"canonical": "부품", "synonyms": ["예비부품", "소모품", "부속"], "approved": true},
+    {"canonical": "운행", "synonyms": ["주행", "주행거리", "운행시간", "가동"], "approved": true},
+    {"canonical": "탄약", "synonyms": ["화약", "탄약고"], "domain": "탄약", "approved": false, "note": "검토 중 — 미승인 대응어는 사용하지 않음"}
+  ]
+}

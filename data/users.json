@@ -1,0 +1,13 @@
+{
+  "note": "시제품 시연용 가상 계정. 비밀번호는 최초 실행 시 해시로만 DB에 저장된다. 실운영에서는 기관 인증으로 대체한다.",
+  "users": [
+    {"id": "demo", "name": "시연 방문자", "org": "(가상) AX거점 방문자", "role": "researcher", "password": null},
+    {"id": "r1", "name": "김연구(가상)", "org": "(가상) 기업A", "role": "researcher", "password": "demo-r1-2026"},
+    {"id": "r2", "name": "이연구(가상)", "org": "(가상) 기업B", "role": "researcher", "password": "demo-r2-2026"},
+    {"id": "r3", "name": "박연구(가상)", "org": "(가상) 연구소C", "role": "researcher", "password": "demo-r3-2026"},
+    {"id": "r4", "name": "최연구(가상)", "org": "(가상) 연구소D", "role": "researcher", "password": "demo-r4-2026"},
+    {"id": "op1", "name": "거점 운영 담당(가상)", "org": "(가상) AX거점", "role": "operator", "password": "demo-op1-2026"},
+    {"id": "own1", "name": "정비자료 소관 담당(가상)", "org": "(가상) 군수정비부서", "role": "data_owner", "department": "(가상) 군수정비부서", "password": "demo-own1-2026"},
+    {"id": "adm1", "name": "서비스 운영자(가상)", "org": "(가상) AX거점", "role": "admin", "password": "demo-adm1-2026"}
+  ]
+}

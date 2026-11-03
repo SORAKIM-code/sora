@@ -1,0 +1,17 @@
+{
+  "note": "가상 열람 권한. 설정되지 않은 조합은 모두 접근 거부.",
+  "grants": [
+    {"subject_type": "user", "subject_id": "demo", "purpose": "시연", "levels": ["공개", "거점승인"],
+     "domains": ["*"], "valid_from": "2026-01-01", "valid_to": "2030-12-31"},
+    {"subject_type": "user", "subject_id": "r1", "purpose": "장비 예지정비 연구", "levels": ["공개", "거점승인"],
+     "domains": ["차량", "항공기", "함정", "통신", "보급", "공통"], "valid_from": "2026-09-01", "valid_to": "2027-08-31"},
+    {"subject_type": "org", "subject_id": "(가상) 기업A", "purpose": "장비 예지정비 연구", "levels": ["공개"],
+     "domains": ["에너지", "시설"], "valid_from": "2026-09-01", "valid_to": "2027-08-31"},
+    {"subject_type": "user", "subject_id": "r2", "purpose": "기상·환경 영향 연구", "levels": ["공개"],
+     "domains": ["*"], "valid_from": "2026-10-01", "valid_to": "2027-03-31"},
+    {"subject_type": "user", "subject_id": "r2", "purpose": "급식 운영 효율화 연구", "levels": ["공개", "거점승인"],
+     "domains": ["급식", "보급", "공통"], "valid_from": "2026-10-01", "valid_to": "2027-09-30"},
+    {"subject_type": "user", "subject_id": "r3", "purpose": "시설 에너지 연구", "levels": ["공개", "거점승인"],
+     "domains": ["시설", "에너지"], "valid_from": "2025-01-01", "valid_to": "2025-12-31"}
+  ]
+}

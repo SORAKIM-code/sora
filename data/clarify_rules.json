@@ -1,0 +1,21 @@
+{
+  "version": "clarify-rules-v1",
+  "note": "결과를 바꿀 정보가 빠졌을 때만 묻는다. 규칙은 거점 담당자 협의로 조정한다.",
+  "rules": [
+    {
+      "id": "data_hint",
+      "when": {"task_any": ["예측"], "domain_any": ["차량", "항공기", "함정", "통신"], "missing": "data_hint"},
+      "question": "어떤 방식으로 고장을 예측하려 하시나요? 방식에 따라 필요한 자료가 달라집니다.",
+      "options": [
+        {"value": "이력", "label": "정비 이력 기반 고장 예측", "add_terms": ["정비 이력", "고장유형"]},
+        {"value": "시계열", "label": "센서 기반 이상 탐지", "add_terms": ["센서", "측정값", "시계열"]}
+      ]
+    },
+    {
+      "id": "target",
+      "when": {"missing": "domain"},
+      "question": "어떤 분야를 연구하시나요? 아래는 추천 가능한 카탈로그가 있는 분야입니다.",
+      "options": "visible_domains"
+    }
+  ]
+}
